@@ -34,19 +34,24 @@ const Board = () => {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header config={boardData.config} />
       
-      <main className="flex-1 px-4 py-3 overflow-hidden flex flex-col gap-3">
-        <div className="flex-[2] min-h-0">
-          <NewsSlider slides={boardData.slides} />
+      <main className="flex-1 overflow-hidden flex gap-3 p-3">
+        {/* Sol Sütun - Dar */}
+        <aside className="w-72 flex flex-col gap-3 overflow-y-auto">
+          <CountdownBar countdowns={boardData.countdowns} />
+        </aside>
+        
+        {/* Orta Sütun - Geniş */}
+        <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <NewsSlider slides={boardData.slides} />
+          </div>
         </div>
         
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
+        {/* Sağ Sütun */}
+        <aside className="w-80 flex flex-col gap-3 overflow-y-auto">
           <DutySection duty={boardData.duty} />
           <BirthdaySection birthdays={boardData.birthdays} />
-        </div>
-        
-        <div className="flex-shrink-0">
-          <CountdownBar countdowns={boardData.countdowns} />
-        </div>
+        </aside>
       </main>
 
       <MarqueeBar text={boardData.marqueeText} priority={boardData.marqueePriority} />
