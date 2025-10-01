@@ -38,7 +38,7 @@ export const CountdownBar = ({ countdowns }: CountdownBarProps) => {
   if (countdowns.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {countdowns.map((countdown) => {
         const daysLeft = calculateDaysLeft(countdown.date);
         if (daysLeft < 0) return null;
@@ -46,14 +46,14 @@ export const CountdownBar = ({ countdowns }: CountdownBarProps) => {
         return (
           <Card
             key={countdown.id}
-            className={`p-4 border-l-4 shadow-md hover:shadow-lg transition-shadow ${getColorClass(countdown.type)}`}
+            className={`p-3 border-l-4 shadow-md hover:shadow-lg transition-shadow ${getColorClass(countdown.type)}`}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{countdown.icon || '📅'}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{countdown.icon || '📅'}</span>
                 <div>
-                  <p className="font-bold text-lg">{countdown.name}</p>
-                  <p className="text-sm opacity-80">
+                  <p className="font-bold text-base">{countdown.name}</p>
+                  <p className="text-xs opacity-80">
                     {new Date(countdown.date).toLocaleDateString('tr-TR', {
                       day: 'numeric',
                       month: 'long',
@@ -63,9 +63,9 @@ export const CountdownBar = ({ countdowns }: CountdownBarProps) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  <span className="text-2xl font-bold tabular-nums">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xl font-bold tabular-nums">
                     {formatCountdown(daysLeft)}
                   </span>
                 </div>

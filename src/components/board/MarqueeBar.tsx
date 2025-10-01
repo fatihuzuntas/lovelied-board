@@ -27,11 +27,11 @@ export const MarqueeBar = ({ text, priority = 'normal' }: MarqueeBarProps) => {
   };
 
   return (
-    <div className={`${getColorClass()} py-4 overflow-hidden shadow-lg`}>
+    <div className={`${getColorClass()} py-2 overflow-hidden shadow-lg flex-shrink-0`}>
       <div className="flex items-center">
-        <span className="text-2xl px-6 flex-shrink-0">{getIcon()}</span>
+        <span className="text-lg px-4 flex-shrink-0">{getIcon()}</span>
         <div className="flex-1 overflow-hidden">
-          <div className="animate-marquee whitespace-nowrap text-xl font-semibold">
+          <div className="animate-marquee whitespace-nowrap text-base font-semibold">
             {text}
           </div>
         </div>

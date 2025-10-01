@@ -49,11 +49,11 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
   const currentSlide = activeSlides[currentIndex];
 
   return (
-    <Card className={`overflow-hidden shadow-xl border-2 ${animationClass}`}>
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row">
+    <Card className={`overflow-hidden shadow-xl border-2 h-full ${animationClass}`}>
+      <CardContent className="p-0 h-full">
+        <div className="flex flex-col md:flex-row h-full">
           {currentSlide.media && (
-            <div className="md:w-2/5 h-64 md:h-auto overflow-hidden">
+            <div className="md:w-2/5 h-48 md:h-full overflow-hidden">
               <img
                 src={currentSlide.media}
                 alt={currentSlide.title}
@@ -61,9 +61,9 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
               />
             </div>
           )}
-          <div className={`${currentSlide.media ? 'md:w-3/5' : 'w-full'} p-8 flex flex-col justify-center`}>
-            <div className="flex items-center gap-3 mb-4">
-              <span className={`px-4 py-1 rounded-full text-sm font-semibold ${
+          <div className={`${currentSlide.media ? 'md:w-3/5' : 'w-full'} p-6 flex flex-col justify-center`}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                 currentSlide.type === 'news' 
                   ? 'bg-primary text-primary-foreground' 
                   : 'bg-secondary text-secondary-foreground'
@@ -71,11 +71,11 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
                 {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
               </span>
             </div>
-            <h2 className="text-3xl font-bold text-foreground mb-4">{currentSlide.title}</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">{currentSlide.body}</p>
+            <h2 className="text-2xl font-bold text-foreground mb-3">{currentSlide.title}</h2>
+            <p className="text-base text-muted-foreground leading-relaxed line-clamp-3">{currentSlide.body}</p>
             
             {/* Progress indicator */}
-            <div className="flex gap-2 mt-6">
+            <div className="flex gap-2 mt-4">
               {activeSlides.map((_, idx) => (
                 <div
                   key={idx}

@@ -6,22 +6,22 @@ export const Footer = () => {
   });
 
   return (
-    <footer className="bg-muted text-muted-foreground px-8 py-4 flex items-center justify-between text-sm">
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4" />
+    <footer className="bg-muted text-muted-foreground px-4 py-2 flex items-center justify-between text-xs flex-shrink-0">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
+          <Globe className="h-3 w-3" />
           <span>www.okulismi.edu.tr</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          <Mail className="h-3 w-3" />
           <span>info@okulismi.edu.tr</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Phone className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          <Phone className="h-3 w-3" />
           <span>0212 XXX XX XX</span>
         </div>
       </div>
-      <div className="text-xs">
+      <div className="text-[10px]">
         Son güncelleme: {lastUpdate}
       </div>
     </footer>

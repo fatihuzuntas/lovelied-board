@@ -36,23 +36,23 @@ export const Header = ({ config }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-primary text-primary-foreground px-8 py-6 flex items-center justify-between shadow-lg">
-      <div className="flex items-center gap-6">
+    <header className="bg-primary text-primary-foreground px-6 py-4 flex items-center justify-between shadow-lg flex-shrink-0">
+      <div className="flex items-center gap-4">
         {config.logoUrl && (
           <img 
             src={config.logoUrl} 
             alt="Okul Logosu" 
-            className="h-16 w-16 object-contain"
+            className="h-12 w-12 object-contain"
           />
         )}
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">{config.schoolName}</h1>
-          <p className="text-lg text-primary-foreground/80 mt-1">{formatDate(currentTime)}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{config.schoolName}</h1>
+          <p className="text-sm text-primary-foreground/80">{formatDate(currentTime)}</p>
         </div>
       </div>
       <div className="text-right">
-        <div className="text-5xl font-bold tabular-nums">{formatTime(currentTime)}</div>
-        <p className="text-sm text-primary-foreground/80 mt-1">Anlık Saat</p>
+        <div className="text-4xl font-bold tabular-nums">{formatTime(currentTime)}</div>
+        <p className="text-xs text-primary-foreground/80">Anlık Saat</p>
       </div>
     </header>
   );
