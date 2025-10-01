@@ -50,7 +50,8 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
 
   return (
     <Card className={`overflow-hidden shadow-xl border-2 h-full ${animationClass}`}>
-      <CardContent className="p-0 h-full relative">
+      <CardContent className="p-0 h-full relative flex flex-col">
+        {/* Background Image */}
         {currentSlide.media && (
           <img
             src={currentSlide.media}
@@ -63,7 +64,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
         
         {/* Content on top */}
-        <div className="relative z-10 h-full p-8 flex flex-col justify-center max-w-3xl">
+        <div className="relative z-10 flex-1 p-8 flex flex-col justify-center max-w-3xl">
           <div className="flex items-center gap-3 mb-4">
             <span className={`px-4 py-1.5 rounded-full text-base font-semibold ${
               currentSlide.type === 'news' 
@@ -79,9 +80,11 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
           <p className="text-xl text-white/90 leading-relaxed drop-shadow-md">
             {currentSlide.body}
           </p>
-          
-          {/* Progress indicator */}
-          <div className="flex gap-2 mt-6">
+        </div>
+        
+        {/* Progress indicator at bottom */}
+        <div className="relative z-10 px-8 pb-6">
+          <div className="flex gap-2">
             {activeSlides.map((_, idx) => (
               <div
                 key={idx}
