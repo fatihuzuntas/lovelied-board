@@ -50,41 +50,46 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
 
   return (
     <Card className={`overflow-hidden shadow-xl border-2 h-full ${animationClass}`}>
-      <CardContent className="p-0 h-full">
-        <div className="flex h-full">
-          {currentSlide.media && (
-            <div className="w-1/2 overflow-hidden">
-              <img
-                src={currentSlide.media}
-                alt={currentSlide.title}
-                className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-700"
+      <CardContent className="p-0 h-full relative">
+        {currentSlide.media && (
+          <img
+            src={currentSlide.media}
+            alt={currentSlide.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
+        
+        {/* Content on top */}
+        <div className="relative z-10 h-full p-8 flex flex-col justify-center max-w-3xl">
+          <div className="flex items-center gap-3 mb-4">
+            <span className={`px-4 py-1.5 rounded-full text-base font-semibold ${
+              currentSlide.type === 'news' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-secondary text-secondary-foreground'
+            }`}>
+              {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
+            </span>
+          </div>
+          <h2 className="text-4xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
+            {currentSlide.title}
+          </h2>
+          <p className="text-xl text-white/90 leading-relaxed drop-shadow-md">
+            {currentSlide.body}
+          </p>
+          
+          {/* Progress indicator */}
+          <div className="flex gap-2 mt-6">
+            {activeSlides.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-1.5 rounded-full flex-1 transition-colors ${
+                  idx === currentIndex ? 'bg-white' : 'bg-white/30'
+                }`}
               />
-            </div>
-          )}
-          <div className={`${currentSlide.media ? 'w-1/2' : 'w-full'} p-8 flex flex-col justify-center`}>
-            <div className="flex items-center gap-3 mb-4">
-              <span className={`px-4 py-1.5 rounded-full text-base font-semibold ${
-                currentSlide.type === 'news' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-secondary text-secondary-foreground'
-              }`}>
-                {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
-              </span>
-            </div>
-            <h2 className="text-3xl font-bold text-foreground mb-4 leading-tight">{currentSlide.title}</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">{currentSlide.body}</p>
-            
-            {/* Progress indicator */}
-            <div className="flex gap-2 mt-6">
-              {activeSlides.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`h-1.5 rounded-full flex-1 transition-colors ${
-                    idx === currentIndex ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </CardContent>

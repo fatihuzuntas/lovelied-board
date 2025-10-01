@@ -35,16 +35,16 @@ const Board = () => {
       
       <main className="flex-1 overflow-hidden flex gap-3 p-3">
         {/* Sol Sütun - Dar */}
-        <aside className="w-72 flex flex-col gap-3">
-          <div className="flex-1 overflow-y-auto">
-            <CountdownBarFlip countdowns={boardData.countdowns} />
-          </div>
-          <MarqueeBar text={boardData.marqueeText} priority={boardData.marqueePriority} />
+        <aside className="w-64 flex flex-col overflow-y-auto">
+          <CountdownBarFlip countdowns={boardData.countdowns} />
         </aside>
         
         {/* Orta Sütun - Geniş */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <NewsSlider slides={boardData.slides} />
+        <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <NewsSlider slides={boardData.slides} />
+          </div>
+          <MarqueeBar text={boardData.marqueeText} priority={boardData.marqueePriority} />
         </div>
         
         {/* Sağ Sütun - En aşağıya kadar */}
