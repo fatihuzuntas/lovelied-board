@@ -54,6 +54,12 @@ export interface BellSchedule {
   order: number;
 }
 
+export interface DaySchedule {
+  id: string;
+  day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'all';
+  schedule: BellSchedule[];
+}
+
 export interface SchoolConfig {
   schoolName: string;
   logoUrl?: string;
@@ -72,4 +78,5 @@ export interface BoardData {
   config: SchoolConfig;
   quotes: Quote[];
   bellSchedule: BellSchedule[];
+  daySchedules?: DaySchedule[];
 }
