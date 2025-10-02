@@ -29,9 +29,16 @@ export const DutySection = ({ duty }: DutySectionProps) => {
         <div className="p-3 bg-secondary/10 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <User className="h-4 w-4 text-secondary" />
-            <p className="text-xs text-muted-foreground font-medium">Öğretmen</p>
+            <p className="text-xs text-muted-foreground font-medium">Öğretmenler</p>
           </div>
-          <p className="text-sm font-bold text-foreground">{duty.teacher}</p>
+          {duty.teachers.map((teacher, idx) => (
+            <div key={idx} className="mb-1">
+              <p className="text-sm font-bold text-foreground">{teacher.name}</p>
+              {teacher.area && (
+                <p className="text-xs text-muted-foreground">{teacher.area}</p>
+              )}
+            </div>
+          ))}
         </div>
 
         <div>

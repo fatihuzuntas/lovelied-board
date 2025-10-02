@@ -5,6 +5,7 @@ import { DutySectionFlip } from '@/components/board/DutySectionFlip';
 import { BirthdaySectionFlip } from '@/components/board/BirthdaySectionFlip';
 import { CountdownBarFlip } from '@/components/board/CountdownBarFlip';
 import { MarqueeBar } from '@/components/board/MarqueeBar';
+import { QuoteSection } from '@/components/board/QuoteSection';
 import { BoardData } from '@/types/board';
 import { loadBoardData } from '@/lib/storage';
 
@@ -37,12 +38,12 @@ const Board = () => {
         {/* Sol ve Orta Sütunlar Grubu */}
         <div className="flex-1 flex flex-col gap-3">
           <div className="flex-1 flex gap-3 overflow-hidden">
-            {/* Sol Sütun - Dar */}
-            <aside className="w-56 flex flex-col overflow-y-auto">
+            {/* Sol Sütun */}
+            <aside className="w-72 flex flex-col overflow-y-auto">
               <CountdownBarFlip countdowns={boardData.countdowns} />
             </aside>
             
-            {/* Orta Sütun - Çok Geniş */}
+            {/* Orta Sütun - En Geniş */}
             <div className="flex-1 overflow-hidden">
               <NewsSlider slides={boardData.slides} />
             </div>
@@ -52,10 +53,11 @@ const Board = () => {
           <MarqueeBar text={boardData.marqueeText} priority={boardData.marqueePriority} />
         </div>
         
-        {/* Sağ Sütun - En aşağıya kadar */}
-        <aside className="w-80 flex flex-col gap-3 overflow-y-auto">
+        {/* Sağ Sütun - Sol ile aynı genişlikte */}
+        <aside className="w-72 flex flex-col gap-3 overflow-y-auto">
           <DutySectionFlip duty={boardData.duty} />
           <BirthdaySectionFlip birthdays={boardData.birthdays} />
+          <QuoteSection quotes={boardData.quotes} />
         </aside>
       </main>
     </div>

@@ -9,6 +9,8 @@ import { BirthdayManager } from '@/components/admin/BirthdayManager';
 import { CountdownManager } from '@/components/admin/CountdownManager';
 import { MarqueeManager } from '@/components/admin/MarqueeManager';
 import { SettingsManager } from '@/components/admin/SettingsManager';
+import { QuoteManager } from '@/components/admin/QuoteManager';
+import { BellScheduleManager } from '@/components/admin/BellScheduleManager';
 
 const Admin = () => {
   return (
@@ -32,12 +34,14 @@ const Admin = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="slides" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-2">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-2">
             <TabsTrigger value="slides">Duyurular</TabsTrigger>
             <TabsTrigger value="duty">Nöbet</TabsTrigger>
             <TabsTrigger value="birthdays">Doğum Günleri</TabsTrigger>
             <TabsTrigger value="countdowns">Geri Sayımlar</TabsTrigger>
             <TabsTrigger value="marquee">Kayan Yazı</TabsTrigger>
+            <TabsTrigger value="quotes">Ayet/Söz</TabsTrigger>
+            <TabsTrigger value="bell">Ders Saatleri</TabsTrigger>
             <TabsTrigger value="settings">Ayarlar</TabsTrigger>
           </TabsList>
 
@@ -59,6 +63,14 @@ const Admin = () => {
 
           <TabsContent value="marquee">
             <MarqueeManager />
+          </TabsContent>
+
+          <TabsContent value="quotes">
+            <QuoteManager />
+          </TabsContent>
+
+          <TabsContent value="bell">
+            <BellScheduleManager />
           </TabsContent>
 
           <TabsContent value="settings">

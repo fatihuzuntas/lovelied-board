@@ -18,11 +18,23 @@ export const SettingsManager = () => {
       config: {
         ...data.config,
         schoolName,
-        logoUrl,
+        logoUrl: logoUrl || undefined,
       },
     };
     saveBoardData(updatedData);
     toast.success('Ayarlar kaydedildi');
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result as string);
+        toast.success('Logo yüklendi');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -50,22 +62,47 @@ export const SettingsManager = () => {
           </div>
 
           <div>
-            <Label>Logo URL (opsiyonel)</Label>
-            <Input
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://..."
-            />
-            {logoUrl && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">Logo önizleme:</p>
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="h-20 w-20 object-contain border rounded p-2"
+            <Label>Okul Logosu</Label>
+            <div className="space-y-3 mt-2">
+              <div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG veya SVG formatında logo yükleyin
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs">veya Logo URL</Label>
+                <Input
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://..."
                 />
               </div>
-            )}
+              {logoUrl && (
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">Logo önizleme:</p>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="h-20 w-20 object-contain border rounded p-2 bg-white"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLogoUrl('')}
+                    >
+                      Logoyu Kaldır
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

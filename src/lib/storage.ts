@@ -1,4 +1,4 @@
-import { BoardData, Slide, DutyInfo, Birthday, Countdown } from '@/types/board';
+import { BoardData, Slide, DutyInfo, Birthday, Countdown, Quote, BellSchedule, SchoolConfig } from '@/types/board';
 
 const STORAGE_KEY = 'school-board-data';
 
@@ -37,7 +37,11 @@ const defaultData: BoardData = {
   ],
   duty: {
     date: new Date().toISOString().split('T')[0],
-    teacher: 'Ahmet Yılmaz',
+    teachers: [
+      { name: 'Ahmet Yılmaz', area: 'Kat 1' },
+      { name: 'Fatma Demir', area: 'Kat 2' },
+      { name: 'Mehmet Kaya', area: 'Bahçe' },
+    ],
     students: ['Ali Demir - 10A', 'Ayşe Kaya - 10B', 'Mehmet Şahin - 10C'],
   },
   birthdays: [
@@ -76,6 +80,39 @@ const defaultData: BoardData = {
     primaryColor: 'hsl(214, 88%, 48%)',
     secondaryColor: 'hsl(24, 95%, 53%)',
   },
+  quotes: [
+    {
+      id: 'q1',
+      type: 'verse',
+      text: 'Okuyan insanlar, düşünen insanlardır.',
+      source: 'Bakara Suresi 2:44',
+    },
+    {
+      id: 'q2',
+      type: 'hadith',
+      text: 'İlim Çin\'de de olsa gidiniz.',
+      source: 'Hz. Muhammed (S.A.V)',
+    },
+    {
+      id: 'q3',
+      type: 'quote',
+      text: 'Hayatta en hakiki mürşit ilimdir.',
+      source: 'Mustafa Kemal Atatürk',
+    },
+  ],
+  bellSchedule: [
+    { id: 'b1', type: 'lesson', name: '1. Ders', startTime: '08:30', endTime: '09:15', order: 1 },
+    { id: 'b2', type: 'break', name: '1. Teneffüs', startTime: '09:15', endTime: '09:25', order: 2 },
+    { id: 'b3', type: 'lesson', name: '2. Ders', startTime: '09:25', endTime: '10:10', order: 3 },
+    { id: 'b4', type: 'break', name: '2. Teneffüs', startTime: '10:10', endTime: '10:20', order: 4 },
+    { id: 'b5', type: 'lesson', name: '3. Ders', startTime: '10:20', endTime: '11:05', order: 5 },
+    { id: 'b6', type: 'break', name: '3. Teneffüs', startTime: '11:05', endTime: '11:15', order: 6 },
+    { id: 'b7', type: 'lesson', name: '4. Ders', startTime: '11:15', endTime: '12:00', order: 7 },
+    { id: 'b8', type: 'break', name: 'Öğle Arası', startTime: '12:00', endTime: '13:00', order: 8 },
+    { id: 'b9', type: 'lesson', name: '5. Ders', startTime: '13:00', endTime: '13:45', order: 9 },
+    { id: 'b10', type: 'break', name: '4. Teneffüs', startTime: '13:45', endTime: '13:55', order: 10 },
+    { id: 'b11', type: 'lesson', name: '6. Ders', startTime: '13:55', endTime: '14:40', order: 11 },
+  ],
 };
 
 export const loadBoardData = (): BoardData => {
@@ -128,5 +165,23 @@ export const updateMarquee = (text: string, priority?: 'normal' | 'urgent' | 'cr
   if (priority) {
     data.marqueePriority = priority;
   }
+  saveBoardData(data);
+};
+
+export const updateQuotes = (quotes: Quote[]): void => {
+  const data = loadBoardData();
+  data.quotes = quotes;
+  saveBoardData(data);
+};
+
+export const updateBellSchedule = (bellSchedule: BellSchedule[]): void => {
+  const data = loadBoardData();
+  data.bellSchedule = bellSchedule;
+  saveBoardData(data);
+};
+
+export const updateConfig = (config: SchoolConfig): void => {
+  const data = loadBoardData();
+  data.config = config;
   saveBoardData(data);
 };

@@ -11,10 +11,27 @@ import { toast } from 'sonner';
 export const DutyManager = () => {
   const [duty, setDuty] = useState<DutyInfo>(loadBoardData().duty);
   const [newStudent, setNewStudent] = useState('');
+  const [newTeacher, setNewTeacher] = useState({ name: '', area: '' });
 
   const handleSave = () => {
     updateDuty(duty);
     toast.success('Nöbetçi bilgileri kaydedildi');
+  };
+
+  const handleAddTeacher = () => {
+    if (!newTeacher.name.trim()) return;
+    setDuty({
+      ...duty,
+      teachers: [...duty.teachers, { name: newTeacher.name, area: newTeacher.area }],
+    });
+    setNewTeacher({ name: '', area: '' });
+  };
+
+  const handleRemoveTeacher = (index: number) => {
+    setDuty({
+      ...duty,
+      teachers: duty.teachers.filter((_, i) => i !== index),
+    });
   };
 
   const handleAddStudent = () => {
@@ -48,22 +65,53 @@ export const DutyManager = () => {
           <CardTitle>Nöbetçi Bilgileri</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Tarih</Label>
-              <Input
-                type="date"
-                value={duty.date}
-                onChange={(e) => setDuty({ ...duty, date: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Nöbetçi Öğretmen</Label>
-              <Input
-                value={duty.teacher}
-                onChange={(e) => setDuty({ ...duty, teacher: e.target.value })}
-                placeholder="Öğretmen adı"
-              />
+          <div>
+            <Label>Tarih</Label>
+            <Input
+              type="date"
+              value={duty.date}
+              onChange={(e) => setDuty({ ...duty, date: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>Nöbetçi Öğretmenler</Label>
+            <div className="space-y-2 mt-2">
+              {duty.teachers.map((teacher, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <Input value={teacher.name} disabled className="flex-1" />
+                  <Input 
+                    value={teacher.area || ''} 
+                    disabled 
+                    className="w-32"
+                    placeholder="Bölge" 
+                  />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleRemoveTeacher(idx)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Input
+                  value={newTeacher.name}
+                  onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })}
+                  placeholder="Öğretmen adı"
+                  className="flex-1"
+                />
+                <Input
+                  value={newTeacher.area}
+                  onChange={(e) => setNewTeacher({ ...newTeacher, area: e.target.value })}
+                  placeholder="Bölge (Kat 1, Bahçe, vb.)"
+                  className="w-48"
+                />
+                <Button onClick={handleAddTeacher}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 

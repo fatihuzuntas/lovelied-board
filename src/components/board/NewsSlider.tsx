@@ -48,25 +48,42 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
 
   const currentSlide = activeSlides[currentIndex];
 
+  const isVideo = currentSlide.media && (
+    currentSlide.media.endsWith('.mp4') || 
+    currentSlide.media.endsWith('.webm') || 
+    currentSlide.media.endsWith('.ogg')
+  );
+
   return (
     <Card className={`overflow-hidden shadow-xl border-2 h-full ${animationClass}`}>
       <CardContent className="p-0 h-full relative flex flex-col">
-        {/* Background Image */}
+        {/* Background Media */}
         {currentSlide.media && (
-          <img
-            src={currentSlide.media}
-            alt={currentSlide.title}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          isVideo ? (
+            <video
+              src={currentSlide.media}
+              className="absolute inset-0 w-full h-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+            />
+          ) : (
+            <img
+              src={currentSlide.media}
+              alt={currentSlide.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )
         )}
         
         {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         
-        {/* Content on top */}
-        <div className="relative z-10 flex-1 p-8 flex flex-col justify-center max-w-3xl">
-          <div className="flex items-center gap-3 mb-4">
-            <span className={`px-4 py-1.5 rounded-full text-base font-semibold ${
+        {/* Content at bottom */}
+        <div className="relative z-10 mt-auto p-8 pb-16">
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
               currentSlide.type === 'news' 
                 ? 'bg-primary text-primary-foreground' 
                 : 'bg-secondary text-secondary-foreground'
@@ -74,10 +91,10 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
               {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
             </span>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
+          <h2 className="text-5xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
             {currentSlide.title}
           </h2>
-          <p className="text-xl text-white/90 leading-relaxed drop-shadow-md">
+          <p className="text-2xl text-white/95 leading-relaxed drop-shadow-md max-w-4xl">
             {currentSlide.body}
           </p>
         </div>

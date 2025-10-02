@@ -11,21 +11,42 @@ export const BirthdaySectionFlip = ({ birthdays }: BirthdaySectionFlipProps) => 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayBirthdays = birthdays.filter((b) => {
-    const bDay = new Date(b.date);
-    const todayDate = new Date(today);
+  const isBirthdayToday = (birthday: Birthday) => {
+    const bDay = new Date(birthday.date);
+    const todayDate = new Date();
     return bDay.getMonth() === todayDate.getMonth() && bDay.getDate() === todayDate.getDate();
-  });
+  };
 
-  const upcomingBirthdays = birthdays.filter((b) => {
-    const bDay = new Date(b.date);
-    const todayDate = new Date(today);
-    const daysDiff = Math.ceil((bDay.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-    return daysDiff > 0 && daysDiff <= 7;
-  });
+  const isBirthdayUpcoming = (birthday: Birthday) => {
+    const bDay = new Date(birthday.date);
+    const todayDate = new Date();
+    const nextWeek = new Date(todayDate);
+    nextWeek.setDate(todayDate.getDate() + 7);
+    return bDay > todayDate && bDay <= nextWeek;
+  };
+
+  const getDaysUntilBirthday = (dateString: string) => {
+    const bDay = new Date(dateString);
+    const today = new Date();
+    const diff = bDay.getTime() - today.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const todayBirthdays = birthdays.filter(isBirthdayToday);
+  const upcomingBirthdays = birthdays
+    .filter(b => !isBirthdayToday(b) && isBirthdayUpcoming(b))
+    .sort((a, b) => {
+      const daysA = getDaysUntilBirthday(a.date);
+      const daysB = getDaysUntilBirthday(b.date);
+      return daysA - daysB;
+    });
 
   const allBirthdays = [...todayBirthdays, ...upcomingBirthdays];
+
+  // If no birthdays, don't render anything
+  if (allBirthdays.length === 0) {
+    return null;
+  }
 
   useEffect(() => {
     if (allBirthdays.length <= 1) return;
@@ -40,22 +61,6 @@ export const BirthdaySectionFlip = ({ birthdays }: BirthdaySectionFlipProps) => 
 
     return () => clearInterval(timer);
   }, [allBirthdays.length]);
-
-  if (allBirthdays.length === 0) {
-    return (
-      <Card className="shadow-lg border-l-4 border-l-secondary">
-        <CardHeader className="bg-secondary/5 py-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Cake className="h-5 w-5 text-secondary" />
-            Doğum Günleri
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <p className="text-center text-muted-foreground py-4 text-xs">Bu hafta doğum günü yok</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const currentBirthday = allBirthdays[currentIndex];
   const isToday = todayBirthdays.includes(currentBirthday);

@@ -15,9 +15,12 @@ export interface Slide {
 
 export interface DutyInfo {
   date: string;
-  teacher: string;
+  teachers: Array<{
+    name: string;
+    area?: string; // 'Kat 1', 'Kat 2', 'Bahçe', etc.
+    photo?: string;
+  }>;
   students: string[];
-  teacherPhoto?: string;
 }
 
 export interface Birthday {
@@ -33,6 +36,22 @@ export interface Countdown {
   date: string;
   type: 'exam' | 'event' | 'holiday';
   icon?: string;
+}
+
+export interface Quote {
+  id: string;
+  type: 'verse' | 'hadith' | 'quote';
+  text: string;
+  source?: string;
+}
+
+export interface BellSchedule {
+  id: string;
+  type: 'lesson' | 'break';
+  name: string;
+  startTime: string;
+  endTime: string;
+  order: number;
 }
 
 export interface SchoolConfig {
@@ -51,4 +70,6 @@ export interface BoardData {
   marqueeText: string;
   marqueePriority?: 'normal' | 'urgent' | 'critical';
   config: SchoolConfig;
+  quotes: Quote[];
+  bellSchedule: BellSchedule[];
 }
