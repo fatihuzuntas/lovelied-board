@@ -52,7 +52,10 @@ export const DutySection = ({ duty }: DutySectionProps) => {
                 <div className="h-6 w-6 bg-accent rounded-full flex items-center justify-center text-accent-foreground font-bold text-xs flex-shrink-0">
                   {idx + 1}
                 </div>
-                <p className="font-medium">{student}</p>
+                <div className="flex-1">
+                  <p className="font-medium">{student.name}</p>
+                  {student.area && <p className="text-xs text-muted-foreground">{student.area}</p>}
+                </div>
               </div>
             ))}
           </div>

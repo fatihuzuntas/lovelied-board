@@ -50,7 +50,7 @@ const Board = () => {
           </div>
           
           {/* Kayan Yazı - Sol ve Orta Sütun Altında */}
-          <MarqueeBar text={boardData.marqueeText} priority={boardData.marqueePriority} />
+          <MarqueeBar texts={boardData.marqueeTexts} />
         </div>
         
         {/* Sağ Sütun - Sol ile aynı genişlikte */}

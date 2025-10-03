@@ -1,4 +1,4 @@
-import { BoardData, Slide, DutyInfo, Birthday, Countdown, Quote, BellSchedule, SchoolConfig, DaySchedule } from '@/types/board';
+import { BoardData, Slide, DutyInfo, Birthday, Countdown, Quote, BellSchedule, SchoolConfig, DaySchedule, MarqueeItem } from '@/types/board';
 
 const STORAGE_KEY = 'school-board-data';
 
@@ -42,18 +42,24 @@ const defaultData: BoardData = {
       { name: 'Fatma Demir', area: 'Kat 2' },
       { name: 'Mehmet Kaya', area: 'Bahçe' },
     ],
-    students: ['Ali Demir - 10A', 'Ayşe Kaya - 10B', 'Mehmet Şahin - 10C'],
+    students: [
+      { name: 'Ali Demir - 10A', area: 'Kat 1' },
+      { name: 'Ayşe Kaya - 10B', area: 'Kat 2' },
+      { name: 'Mehmet Şahin - 10C', area: 'Bahçe' }
+    ],
   },
   birthdays: [
     {
       name: 'Zeynep Arslan',
       date: '2008-10-15',
       class: '9A',
+      type: 'student',
     },
     {
       name: 'Burak Yıldız',
       date: '2007-10-15',
       class: '10B',
+      type: 'student',
     },
   ],
   countdowns: [
@@ -72,8 +78,18 @@ const defaultData: BoardData = {
       icon: '📚',
     },
   ],
-  marqueeText: 'Lütfen koridorlarda sessiz olalım. Temizlik kurallarına uyalım. Öğle yemeği 12:00-13:00 saatleri arasındadır.',
-  marqueePriority: 'normal',
+  marqueeTexts: [
+    {
+      id: 'm1',
+      text: 'Lütfen koridorlarda sessiz olalım. Temizlik kurallarına uyalım.',
+      priority: 'normal',
+    },
+    {
+      id: 'm2',
+      text: 'Öğle yemeği 12:00-13:00 saatleri arasındadır.',
+      priority: 'normal',
+    },
+  ],
   config: {
     schoolName: 'Atatürk Anadolu Lisesi',
     timezone: 'Europe/Istanbul',
@@ -186,12 +202,9 @@ export const updateCountdowns = (countdowns: Countdown[]): void => {
   saveBoardData(data);
 };
 
-export const updateMarquee = (text: string, priority?: 'normal' | 'urgent' | 'critical'): void => {
+export const updateMarqueeTexts = (marqueeTexts: MarqueeItem[]): void => {
   const data = loadBoardData();
-  data.marqueeText = text;
-  if (priority) {
-    data.marqueePriority = priority;
-  }
+  data.marqueeTexts = marqueeTexts;
   saveBoardData(data);
 };
 

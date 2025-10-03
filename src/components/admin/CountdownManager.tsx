@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const colorfulIcons = [
+  '🎉', '🎊', '🎈', '🎁', '🎂', '🎓', '📚', '📝', '📖', '✏️',
+  '🏆', '🥇', '🥈', '🥉', '⭐', '✨', '💫', '🌟', '🌈', '🔥',
+  '❤️', '💙', '💚', '💛', '🧡', '💜', '🏖️', '🌴', '☀️', '🌙',
+  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🎯', '🎪', '🎭', '🎨',
+  '🎵', '🎶', '🎸', '🎹', '🎤', '🎧', '📅', '⏰', '⏳', '⌛',
+];
+
 export const CountdownManager = () => {
   const [countdowns, setCountdowns] = useState<Countdown[]>(loadBoardData().countdowns);
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
@@ -17,6 +25,7 @@ export const CountdownManager = () => {
     type: 'event',
     icon: '📅',
   });
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
   const handleSave = () => {
     updateCountdowns(countdowns);
@@ -97,11 +106,33 @@ export const CountdownManager = () => {
             </div>
             <div>
               <Label>İkon</Label>
-              <Input
-                value={newCountdown.icon}
-                onChange={(e) => setNewCountdown({ ...newCountdown, icon: e.target.value })}
-                placeholder="Emoji"
-              />
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full text-2xl"
+                  onClick={() => setShowIconPicker(!showIconPicker)}
+                >
+                  {newCountdown.icon}
+                </Button>
+                {showIconPicker && (
+                  <div className="absolute z-10 mt-2 p-3 bg-card border rounded-lg shadow-lg grid grid-cols-10 gap-2 max-h-64 overflow-auto">
+                    {colorfulIcons.map((icon, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="text-2xl hover:bg-muted p-2 rounded transition-colors"
+                        onClick={() => {
+                          setNewCountdown({ ...newCountdown, icon });
+                          setShowIconPicker(false);
+                        }}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-end">
               <Button onClick={handleAdd} className="w-full">

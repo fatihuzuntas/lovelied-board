@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -14,6 +15,7 @@ export const BirthdayManager = () => {
     name: '',
     date: '',
     class: '',
+    type: 'student',
   });
 
   const handleSave = () => {
@@ -27,7 +29,7 @@ export const BirthdayManager = () => {
       return;
     }
     setBirthdays([...birthdays, newBirthday as Birthday]);
-    setNewBirthday({ name: '', date: '', class: '' });
+    setNewBirthday({ name: '', date: '', class: '', type: 'student' });
     toast.success('Doğum günü eklendi');
   };
 
@@ -51,7 +53,7 @@ export const BirthdayManager = () => {
           <CardTitle>Yeni Doğum Günü Ekle</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <div>
               <Label>İsim Soyisim</Label>
               <Input
@@ -69,12 +71,29 @@ export const BirthdayManager = () => {
               />
             </div>
             <div>
-              <Label>Sınıf</Label>
+              <Label>Sınıf / Bölüm</Label>
               <Input
                 value={newBirthday.class}
                 onChange={(e) => setNewBirthday({ ...newBirthday, class: e.target.value })}
-                placeholder="Örn: 10A"
+                placeholder="Örn: 10A veya Matematik"
               />
+            </div>
+            <div>
+              <Label>Tür</Label>
+              <Select
+                value={newBirthday.type}
+                onValueChange={(value: 'student' | 'teacher') =>
+                  setNewBirthday({ ...newBirthday, type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Öğrenci</SelectItem>
+                  <SelectItem value="teacher">Öğretmen</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <Button onClick={handleAdd} className="w-full">
@@ -97,7 +116,7 @@ export const BirthdayManager = () => {
                 key={idx}
                 className="flex items-center justify-between p-4 bg-muted rounded-lg"
               >
-                <div className="flex-1 grid grid-cols-3 gap-4">
+                <div className="flex-1 grid grid-cols-4 gap-4">
                   <div>
                     <p className="font-medium">{birthday.name}</p>
                   </div>
@@ -111,6 +130,11 @@ export const BirthdayManager = () => {
                   </div>
                   <div>
                     <p className="text-sm">{birthday.class}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">
+                      {birthday.type === 'teacher' ? '👨‍🏫 Öğretmen' : '👨‍🎓 Öğrenci'}
+                    </p>
                   </div>
                 </div>
                 <Button

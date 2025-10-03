@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Plus, Trash2, Clock, BookOpen, Coffee } from 'lucide-react';
+import { Save, Plus, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
-const dayLabels = {
+const daysMap = {
   all: 'Tüm Günler',
   monday: 'Pazartesi',
   tuesday: 'Salı',
@@ -20,305 +19,173 @@ const dayLabels = {
 };
 
 export const BellScheduleManager = () => {
-  const boardData = loadBoardData();
+  const data = loadBoardData();
   const [daySchedules, setDaySchedules] = useState<DaySchedule[]>(
-    boardData.daySchedules || [
+    data.daySchedules || [
       {
         id: 'ds1',
         day: 'all',
-        schedule: boardData.bellSchedule || [],
+        schedule: [
+          { id: 'b1', type: 'lesson', name: '1. Ders', startTime: '08:30', endTime: '09:15', order: 1 },
+          { id: 'b2', type: 'lesson', name: '2. Ders', startTime: '09:25', endTime: '10:10', order: 2 },
+          { id: 'b3', type: 'lesson', name: '3. Ders', startTime: '10:20', endTime: '11:05', order: 3 },
+          { id: 'b4', type: 'lesson', name: '4. Ders', startTime: '11:15', endTime: '12:00', order: 4 },
+          { id: 'b5', type: 'lesson', name: '5. Ders', startTime: '13:00', endTime: '13:45', order: 5 },
+          { id: 'b6', type: 'lesson', name: '6. Ders', startTime: '13:55', endTime: '14:40', order: 6 },
+          { id: 'b7', type: 'lesson', name: '7. Ders', startTime: '14:50', endTime: '15:35', order: 7 },
+          { id: 'b8', type: 'lesson', name: '8. Ders', startTime: '15:45', endTime: '16:30', order: 8 },
+        ],
       },
     ]
   );
-  const [selectedDay, setSelectedDay] = useState<string>('ds1');
-  const [newItem, setNewItem] = useState<Partial<BellSchedule>>({
-    type: 'lesson',
-    name: '',
-    startTime: '',
-    endTime: '',
-  });
+  const [currentDay, setCurrentDay] = useState<'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'>('all');
 
-  const currentSchedule = daySchedules.find((ds) => ds.id === selectedDay);
+  const getCurrentSchedule = () => {
+    return daySchedules.find((ds) => ds.day === currentDay) || {
+      id: `ds${Date.now()}`,
+      day: currentDay,
+      schedule: [],
+    };
+  };
+
+  const updateCurrentSchedule = (schedule: BellSchedule[]) => {
+    const updated = daySchedules.filter((ds) => ds.day !== currentDay);
+    updated.push({ ...getCurrentSchedule(), schedule });
+    setDaySchedules(updated);
+  };
 
   const handleSave = () => {
     updateDaySchedules(daySchedules);
     toast.success('Ders saatleri kaydedildi');
   };
 
-  const handleAdd = () => {
-    if (!newItem.name?.trim() || !newItem.startTime || !newItem.endTime) {
-      toast.error('Lütfen tüm alanları doldurun');
-      return;
-    }
-
-    const item: BellSchedule = {
+  const handleAddLesson = () => {
+    const current = getCurrentSchedule();
+    const lessons = current.schedule.filter((s) => s.type === 'lesson');
+    const nextOrder = lessons.length + 1;
+    const newLesson: BellSchedule = {
       id: `b${Date.now()}`,
-      type: newItem.type as 'lesson' | 'break',
-      name: newItem.name,
-      startTime: newItem.startTime,
-      endTime: newItem.endTime,
-      order: (currentSchedule?.schedule.length || 0) + 1,
+      type: 'lesson',
+      name: `${nextOrder}. Ders`,
+      startTime: '08:30',
+      endTime: '09:15',
+      order: nextOrder,
     };
+    updateCurrentSchedule([...current.schedule, newLesson].sort((a, b) => a.order - b.order));
+    toast.success('Ders eklendi');
+  };
 
-    const updatedSchedules = daySchedules.map((ds) =>
-      ds.id === selectedDay
-        ? { ...ds, schedule: [...ds.schedule, item] }
-        : ds
+  const handleDeleteLesson = (id: string) => {
+    const current = getCurrentSchedule();
+    updateCurrentSchedule(current.schedule.filter((s) => s.id !== id));
+    toast.success('Ders silindi');
+  };
+
+  const handleUpdateLesson = (id: string, field: keyof BellSchedule, value: any) => {
+    const current = getCurrentSchedule();
+    updateCurrentSchedule(
+      current.schedule.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );
-
-    setDaySchedules(updatedSchedules);
-    setNewItem({ type: 'lesson', name: '', startTime: '', endTime: '' });
-    toast.success('Zaman dilimi eklendi');
   };
 
-  const handleDelete = (id: string) => {
-    const updatedSchedules = daySchedules.map((ds) => {
-      if (ds.id === selectedDay) {
-        const newSchedule = ds.schedule.filter((s) => s.id !== id);
-        newSchedule.forEach((item, index) => {
-          item.order = index + 1;
-        });
-        return { ...ds, schedule: newSchedule };
-      }
-      return ds;
-    });
-    setDaySchedules(updatedSchedules);
-    toast.success('Zaman dilimi silindi');
-  };
-
-  const addNewDay = (day: DaySchedule['day']) => {
-    const existingDay = daySchedules.find((ds) => ds.day === day);
-    if (existingDay) {
-      setSelectedDay(existingDay.id);
-      return;
-    }
-
-    const allSchedule = daySchedules.find((ds) => ds.day === 'all');
-    const newDaySchedule: DaySchedule = {
-      id: `ds${Date.now()}`,
-      day,
-      schedule: allSchedule ? [...allSchedule.schedule] : [],
-    };
-
-    setDaySchedules([...daySchedules, newDaySchedule]);
-    setSelectedDay(newDaySchedule.id);
-    toast.success(`${dayLabels[day]} programı oluşturuldu`);
-  };
-
-  const deleteDay = (id: string) => {
-    const daySchedule = daySchedules.find((ds) => ds.id === id);
-    if (daySchedule?.day === 'all') {
-      toast.error('Genel program silinemez');
-      return;
-    }
-    setDaySchedules(daySchedules.filter((ds) => ds.id !== id));
-    setSelectedDay('ds1');
-    toast.success('Program silindi');
-  };
+  const currentSchedule = getCurrentSchedule();
+  const lessons = currentSchedule.schedule.filter((s) => s.type === 'lesson').sort((a, b) => a.order - b.order);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Ders ve Teneffüs Saatleri</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Günlere göre farklı ders programları oluşturabilirsiniz
-          </p>
-        </div>
-        <Button onClick={handleSave} size="lg">
+        <h2 className="text-2xl font-bold">Ders Saatleri Yönetimi</h2>
+        <Button onClick={handleSave}>
           <Save className="mr-2 h-4 w-4" />
           Kaydet
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Program Seçimi</CardTitle>
-            <Select onValueChange={(value) => addNewDay(value as DaySchedule['day'])}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Yeni Gün Ekle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monday">Pazartesi</SelectItem>
-                <SelectItem value="tuesday">Salı</SelectItem>
-                <SelectItem value="wednesday">Çarşamba</SelectItem>
-                <SelectItem value="thursday">Perşembe</SelectItem>
-                <SelectItem value="friday">Cuma</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={selectedDay} onValueChange={setSelectedDay}>
-            <TabsList className="grid w-full grid-cols-6 mb-6">
-              {daySchedules.map((ds) => (
-                <TabsTrigger key={ds.id} value={ds.id} className="relative">
-                  {dayLabels[ds.day]}
-                  {ds.day !== 'all' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteDay(ds.id);
-                      }}
-                    >
-                      ×
-                    </Button>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+      <Tabs value={currentDay} onValueChange={(v) => setCurrentDay(v as any)}>
+        <TabsList className="grid w-full grid-cols-6">
+          {Object.entries(daysMap).map(([key, label]) => (
+            <TabsTrigger key={key} value={key}>
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-            {daySchedules.map((ds) => (
-              <TabsContent key={ds.id} value={ds.id} className="space-y-6">
-                <Card className="border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Yeni Zaman Dilimi Ekle</CardTitle>
+        {Object.keys(daysMap).map((day) => (
+          <TabsContent key={day} value={day} className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {day === 'all' ? 'Tüm günler için geçerli ders programı' : `${daysMap[day as keyof typeof daysMap]} günü ders programı`}
+              </p>
+              <Button onClick={handleAddLesson} size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Ders Ekle
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {lessons.map((lesson) => (
+                <Card key={lesson.id} className="relative">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">{lesson.name}</CardTitle>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteLesson(lesson.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-4 gap-4">
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Ders Adı</Label>
+                      <Input
+                        value={lesson.name}
+                        onChange={(e) => handleUpdateLesson(lesson.id, 'name', e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label>Tür</Label>
-                        <Select
-                          value={newItem.type}
-                          onValueChange={(value) =>
-                            setNewItem({ ...newItem, type: value as BellSchedule['type'] })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lesson">
-                              <div className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4" />
-                                Ders
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="break">
-                              <div className="flex items-center gap-2">
-                                <Coffee className="h-4 w-4" />
-                                Teneffüs
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label>İsim</Label>
-                        <Input
-                          value={newItem.name}
-                          onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                          placeholder="örn: 1. Ders"
-                        />
-                      </div>
-
-                      <div>
-                        <Label>Başlangıç</Label>
+                        <Label className="text-xs">Başlangıç</Label>
                         <Input
                           type="time"
-                          value={newItem.startTime}
-                          onChange={(e) => setNewItem({ ...newItem, startTime: e.target.value })}
+                          value={lesson.startTime}
+                          onChange={(e) => handleUpdateLesson(lesson.id, 'startTime', e.target.value)}
+                          className="h-8"
                         />
                       </div>
-
                       <div>
-                        <Label>Bitiş</Label>
+                        <Label className="text-xs">Bitiş</Label>
                         <Input
                           type="time"
-                          value={newItem.endTime}
-                          onChange={(e) => setNewItem({ ...newItem, endTime: e.target.value })}
+                          value={lesson.endTime}
+                          onChange={(e) => handleUpdateLesson(lesson.id, 'endTime', e.target.value)}
+                          className="h-8"
                         />
                       </div>
                     </div>
-
-                    <Button onClick={handleAdd} className="w-full">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Ekle
-                    </Button>
                   </CardContent>
                 </Card>
+              ))}
+            </div>
 
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    {dayLabels[ds.day]} Programı
-                  </h3>
-                  {ds.schedule.length === 0 ? (
-                    <Card>
-                      <CardContent className="p-8 text-center text-muted-foreground">
-                        Henüz zaman dilimi eklenmemiş
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid gap-2">
-                      {ds.schedule.map((item) => (
-                        <Card
-                          key={item.id}
-                          className={`transition-all hover:shadow-md ${
-                            item.type === 'lesson'
-                              ? 'border-l-4 border-l-primary'
-                              : 'border-l-4 border-l-secondary'
-                          }`}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                              <div
-                                className={`flex items-center justify-center w-12 h-12 rounded-lg ${
-                                  item.type === 'lesson'
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-secondary/10 text-secondary'
-                                }`}
-                              >
-                                {item.type === 'lesson' ? (
-                                  <BookOpen className="h-6 w-6" />
-                                ) : (
-                                  <Coffee className="h-6 w-6" />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-lg">{item.name}</span>
-                                  <span
-                                    className={`text-xs font-medium px-2 py-1 rounded ${
-                                      item.type === 'lesson'
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'bg-secondary/10 text-secondary'
-                                    }`}
-                                  >
-                                    {item.type === 'lesson' ? 'Ders' : 'Teneffüs'}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4" />
-                                  <span>
-                                    {item.startTime} - {item.endTime}
-                                  </span>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      </Card>
+            {lessons.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">
+                    Henüz ders eklenmemiş. Yukarıdaki "Ders Ekle" butonuna tıklayarak başlayın.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

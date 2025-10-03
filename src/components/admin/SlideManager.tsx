@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Slide } from '@/types/board';
 import { loadBoardData, updateSlides } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Edit, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const SlideManager = () => {
   const [slides, setSlides] = useState<Slide[]>(loadBoardData().slides);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Slide>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     updateSlides(slides);
@@ -33,6 +34,7 @@ export const SlideManager = () => {
     setSlides([...slides, newSlide]);
     setEditingId(newSlide.id);
     setEditForm(newSlide);
+    toast.success('Yeni duyuru eklendi, şimdi düzenleyebilirsiniz');
   };
 
   const handleEdit = (slide: Slide) => {
@@ -51,12 +53,33 @@ export const SlideManager = () => {
 
   const handleDelete = (id: string) => {
     setSlides(slides.filter(s => s.id !== id));
+    if (editingId === id) {
+      setEditingId(null);
+      setEditForm({});
+    }
     toast.success('Duyuru silindi');
   };
 
   const handleCancel = () => {
+    // If it's a new slide that was never saved, remove it
+    if (editingId && slides.find(s => s.id === editingId && !s.body)) {
+      setSlides(slides.filter(s => s.id !== editingId));
+    }
     setEditingId(null);
     setEditForm({});
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setEditForm({ ...editForm, media: base64String });
+      toast.success('Medya yüklendi');
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -142,14 +165,45 @@ export const SlideManager = () => {
                     />
                   </div>
                   <div>
-                    <Label>Görsel URL (opsiyonel)</Label>
-                    <Input
-                      value={editForm.media || ''}
-                      onChange={(e) => setEditForm({ ...editForm, media: e.target.value })}
-                      placeholder="https://..."
-                    />
+                    <Label>Medya</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Dosya Seç
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                {editForm.media && (
+                  <div className="relative">
+                    {editForm.media.startsWith('data:video') || editForm.media.endsWith('.mp4') || editForm.media.endsWith('.webm') ? (
+                      <video src={editForm.media} className="w-full h-32 object-cover rounded" controls />
+                    ) : (
+                      <img src={editForm.media} alt="Önizleme" className="w-full h-32 object-cover rounded" />
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => setEditForm({ ...editForm, media: undefined })}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
 
                 <div className="flex gap-2 justify-end">
                   <Button onClick={handleUpdate} size="sm">
@@ -185,7 +239,11 @@ export const SlideManager = () => {
                 <CardContent>
                   <p className="text-sm">{slide.body}</p>
                   {slide.media && (
-                    <img src={slide.media} alt={slide.title} className="mt-4 h-32 object-cover rounded" />
+                    slide.media.startsWith('data:video') || slide.media.endsWith('.mp4') || slide.media.endsWith('.webm') ? (
+                      <video src={slide.media} className="mt-4 h-32 object-cover rounded" controls />
+                    ) : (
+                      <img src={slide.media} alt={slide.title} className="mt-4 h-32 object-cover rounded" />
+                    )
                   )}
                 </CardContent>
               </>

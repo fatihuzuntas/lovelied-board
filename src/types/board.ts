@@ -17,16 +17,20 @@ export interface DutyInfo {
   date: string;
   teachers: Array<{
     name: string;
-    area?: string; // 'Kat 1', 'Kat 2', 'Bahçe', etc.
+    area?: string;
     photo?: string;
   }>;
-  students: string[];
+  students: Array<{
+    name: string;
+    area?: string;
+  }>;
 }
 
 export interface Birthday {
   name: string;
   date: string;
   class: string;
+  type: 'student' | 'teacher';
   photo?: string;
 }
 
@@ -68,13 +72,18 @@ export interface SchoolConfig {
   timezone: string;
 }
 
+export interface MarqueeItem {
+  id: string;
+  text: string;
+  priority: 'normal' | 'urgent' | 'critical';
+}
+
 export interface BoardData {
   slides: Slide[];
   duty: DutyInfo;
   birthdays: Birthday[];
   countdowns: Countdown[];
-  marqueeText: string;
-  marqueePriority?: 'normal' | 'urgent' | 'critical';
+  marqueeTexts: MarqueeItem[];
   config: SchoolConfig;
   quotes: Quote[];
   bellSchedule: BellSchedule[];

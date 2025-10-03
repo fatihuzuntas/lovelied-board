@@ -1,23 +1,60 @@
 import { useState } from 'react';
-import { loadBoardData, updateMarquee } from '@/lib/storage';
+import { loadBoardData, updateMarqueeTexts } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { MarqueeItem } from '@/types/board';
 
 export const MarqueeManager = () => {
   const data = loadBoardData();
-  const [text, setText] = useState(data.marqueeText);
-  const [priority, setPriority] = useState<'normal' | 'urgent' | 'critical'>(
-    data.marqueePriority || 'normal'
+  const [marqueeTexts, setMarqueeTexts] = useState<MarqueeItem[]>(
+    data.marqueeTexts || []
   );
+  const [newMarquee, setNewMarquee] = useState({ text: '', priority: 'normal' as 'normal' | 'urgent' | 'critical' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ text: '', priority: 'normal' as 'normal' | 'urgent' | 'critical' });
 
   const handleSave = () => {
-    updateMarquee(text, priority);
-    toast.success('Kayan yazı kaydedildi');
+    updateMarqueeTexts(marqueeTexts);
+    toast.success('Kayan yazılar kaydedildi');
+  };
+
+  const handleAdd = () => {
+    if (!newMarquee.text.trim()) {
+      toast.error('Lütfen bir metin girin');
+      return;
+    }
+    const newItem: MarqueeItem = {
+      id: `m${Date.now()}`,
+      text: newMarquee.text,
+      priority: newMarquee.priority,
+    };
+    setMarqueeTexts([...marqueeTexts, newItem]);
+    setNewMarquee({ text: '', priority: 'normal' });
+    toast.success('Kayan yazı eklendi');
+  };
+
+  const handleEdit = (item: MarqueeItem) => {
+    setEditingId(item.id);
+    setEditForm({ text: item.text, priority: item.priority });
+  };
+
+  const handleUpdate = () => {
+    if (!editingId) return;
+    setMarqueeTexts(marqueeTexts.map(m => 
+      m.id === editingId ? { ...m, text: editForm.text, priority: editForm.priority } : m
+    ));
+    setEditingId(null);
+    toast.success('Kayan yazı güncellendi');
+  };
+
+  const handleDelete = (id: string) => {
+    setMarqueeTexts(marqueeTexts.filter(m => m.id !== id));
+    toast.success('Kayan yazı silindi');
   };
 
   return (
@@ -32,57 +69,124 @@ export const MarqueeManager = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Kayan Yazı İçeriği</CardTitle>
+          <CardTitle>Yeni Kayan Yazı Ekle</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Öncelik Seviyesi</Label>
-            <Select
-              value={priority}
-              onValueChange={(value: 'normal' | 'urgent' | 'critical') => setPriority(value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">📢 Normal</SelectItem>
-                <SelectItem value="urgent">⚠️ Acil</SelectItem>
-                <SelectItem value="critical">🚨 Kritik</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground mt-2">
-              Öncelik seviyesi kayan yazının rengini ve görünümünü değiştirir
-            </p>
-          </div>
-
-          <div>
-            <Label>Yazı İçeriği</Label>
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={4}
-              placeholder="Kayan yazıda gösterilecek metni buraya girin..."
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              İpucu: Birden fazla duyuruyu ayırmak için • karakterini kullanabilirsiniz
-            </p>
-          </div>
-
-          <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm font-semibold mb-2">Önizleme:</p>
-            <div
-              className={`p-3 rounded overflow-hidden ${
-                priority === 'critical'
-                  ? 'bg-destructive text-destructive-foreground'
-                  : priority === 'urgent'
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-primary text-primary-foreground'
-              }`}
-            >
-              <div className="whitespace-nowrap animate-marquee text-sm font-semibold">
-                {text}
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label>Yazı İçeriği</Label>
+              <Textarea
+                value={newMarquee.text}
+                onChange={(e) => setNewMarquee({ ...newMarquee, text: e.target.value })}
+                rows={3}
+                placeholder="Kayan yazıda gösterilecek metni buraya girin..."
+              />
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Label>Öncelik Seviyesi</Label>
+                <Select
+                  value={newMarquee.priority}
+                  onValueChange={(value: 'normal' | 'urgent' | 'critical') =>
+                    setNewMarquee({ ...newMarquee, priority: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">📢 Normal</SelectItem>
+                    <SelectItem value="urgent">⚠️ Acil</SelectItem>
+                    <SelectItem value="critical">🚨 Kritik</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleAdd}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ekle
+                </Button>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kayan Yazılar ({marqueeTexts.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {marqueeTexts.map((item) => (
+              <div key={item.id} className="border rounded-lg p-4">
+                {editingId === item.id ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={editForm.text}
+                      onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
+                      rows={3}
+                    />
+                    <div className="flex gap-2">
+                      <Select
+                        value={editForm.priority}
+                        onValueChange={(value: 'normal' | 'urgent' | 'critical') =>
+                          setEditForm({ ...editForm, priority: value })
+                        }
+                      >
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="normal">📢 Normal</SelectItem>
+                          <SelectItem value="urgent">⚠️ Acil</SelectItem>
+                          <SelectItem value="critical">🚨 Kritik</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" onClick={handleUpdate}>
+                        <Check className="h-4 w-4 mr-2" />
+                        Kaydet
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div
+                        className={`p-3 rounded mb-2 ${
+                          item.priority === 'critical'
+                            ? 'bg-destructive text-destructive-foreground'
+                            : item.priority === 'urgent'
+                            ? 'bg-secondary text-secondary-foreground'
+                            : 'bg-primary text-primary-foreground'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold">{item.text}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {item.priority === 'critical' ? '🚨 Kritik' : item.priority === 'urgent' ? '⚠️ Acil' : '📢 Normal'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(item.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {marqueeTexts.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                Henüz kayan yazı eklenmemiş
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -5,13 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Plus, X } from 'lucide-react';
+import { Save, Plus, X, Edit, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const DutyManager = () => {
   const [duty, setDuty] = useState<DutyInfo>(loadBoardData().duty);
-  const [newStudent, setNewStudent] = useState('');
+  const [newStudent, setNewStudent] = useState({ name: '', area: '' });
   const [newTeacher, setNewTeacher] = useState({ name: '', area: '' });
+  const [editingTeacher, setEditingTeacher] = useState<number | null>(null);
+  const [editingStudent, setEditingStudent] = useState<number | null>(null);
+  const [editTeacherForm, setEditTeacherForm] = useState<{ name: string; area?: string }>({ name: '', area: '' });
+  const [editStudentForm, setEditStudentForm] = useState<{ name: string; area?: string }>({ name: '', area: '' });
 
   const handleSave = () => {
     updateDuty(duty);
@@ -34,13 +38,26 @@ export const DutyManager = () => {
     });
   };
 
+  const handleEditTeacher = (index: number) => {
+    setEditingTeacher(index);
+    setEditTeacherForm(duty.teachers[index]);
+  };
+
+  const handleUpdateTeacher = () => {
+    if (editingTeacher === null) return;
+    const updatedTeachers = [...duty.teachers];
+    updatedTeachers[editingTeacher] = editTeacherForm;
+    setDuty({ ...duty, teachers: updatedTeachers });
+    setEditingTeacher(null);
+  };
+
   const handleAddStudent = () => {
-    if (!newStudent.trim()) return;
+    if (!newStudent.name.trim()) return;
     setDuty({
       ...duty,
-      students: [...duty.students, newStudent],
+      students: [...duty.students, { name: newStudent.name, area: newStudent.area }],
     });
-    setNewStudent('');
+    setNewStudent({ name: '', area: '' });
   };
 
   const handleRemoveStudent = (index: number) => {
@@ -48,6 +65,19 @@ export const DutyManager = () => {
       ...duty,
       students: duty.students.filter((_, i) => i !== index),
     });
+  };
+
+  const handleEditStudent = (index: number) => {
+    setEditingStudent(index);
+    setEditStudentForm(duty.students[index]);
+  };
+
+  const handleUpdateStudent = () => {
+    if (editingStudent === null) return;
+    const updatedStudents = [...duty.students];
+    updatedStudents[editingStudent] = editStudentForm;
+    setDuty({ ...duty, students: updatedStudents });
+    setEditingStudent(null);
   };
 
   return (
@@ -79,20 +109,39 @@ export const DutyManager = () => {
             <div className="space-y-2 mt-2">
               {duty.teachers.map((teacher, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input value={teacher.name} disabled className="flex-1" />
-                  <Input 
-                    value={teacher.area || ''} 
-                    disabled 
-                    className="w-32"
-                    placeholder="Bölge" 
-                  />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleRemoveTeacher(idx)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {editingTeacher === idx ? (
+                    <>
+                      <Input
+                        value={editTeacherForm.name}
+                        onChange={(e) => setEditTeacherForm({ ...editTeacherForm, name: e.target.value })}
+                        placeholder="Öğretmen adı"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={editTeacherForm.area || ''}
+                        onChange={(e) => setEditTeacherForm({ ...editTeacherForm, area: e.target.value })}
+                        placeholder="Bölge"
+                        className="w-32"
+                      />
+                      <Button size="sm" onClick={handleUpdateTeacher}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingTeacher(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Input value={teacher.name} disabled className="flex-1" />
+                      <Input value={teacher.area || ''} disabled className="w-32" placeholder="Bölge" />
+                      <Button size="sm" variant="outline" onClick={() => handleEditTeacher(idx)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleRemoveTeacher(idx)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
               <div className="flex gap-2">
@@ -120,22 +169,54 @@ export const DutyManager = () => {
             <div className="space-y-2 mt-2">
               {duty.students.map((student, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input value={student} disabled className="flex-1" />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleRemoveStudent(idx)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {editingStudent === idx ? (
+                    <>
+                      <Input
+                        value={editStudentForm.name}
+                        onChange={(e) => setEditStudentForm({ ...editStudentForm, name: e.target.value })}
+                        placeholder="Öğrenci adı - Sınıf"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={editStudentForm.area || ''}
+                        onChange={(e) => setEditStudentForm({ ...editStudentForm, area: e.target.value })}
+                        placeholder="Bölge"
+                        className="w-32"
+                      />
+                      <Button size="sm" onClick={handleUpdateStudent}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingStudent(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Input value={student.name} disabled className="flex-1" />
+                      <Input value={student.area || ''} disabled className="w-32" placeholder="Bölge" />
+                      <Button size="sm" variant="outline" onClick={() => handleEditStudent(idx)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleRemoveStudent(idx)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
               <div className="flex gap-2">
                 <Input
-                  value={newStudent}
-                  onChange={(e) => setNewStudent(e.target.value)}
+                  value={newStudent.name}
+                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
                   placeholder="Öğrenci adı - Sınıf (örn: Ali Demir - 10A)"
+                  className="flex-1"
                   onKeyPress={(e) => e.key === 'Enter' && handleAddStudent()}
+                />
+                <Input
+                  value={newStudent.area}
+                  onChange={(e) => setNewStudent({ ...newStudent, area: e.target.value })}
+                  placeholder="Bölge (Kat 1, Bahçe, vb.)"
+                  className="w-48"
                 />
                 <Button onClick={handleAddStudent}>
                   <Plus className="h-4 w-4" />
