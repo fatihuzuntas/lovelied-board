@@ -160,21 +160,59 @@ const defaultData: BoardData = {
 
 export const loadBoardData = (): BoardData => {
   try {
+    // Önce API'den okunmuş veriyi localStorage cache'inden dene
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('Error loading board data:', error);
+    console.error('Error reading cached board data:', error);
   }
+  // Senkron olmayan fetch için: anlık render için default, ardından Admin/Board periyodik olarak fetch eder
   return defaultData;
 };
 
 export const saveBoardData = (data: BoardData): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // API'ye yaz (dev server middleware)
+    fetch('/api/board', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch((e) => console.error('Failed to PUT /api/board', e));
   } catch (error) {
     console.error('Error saving board data:', error);
+  }
+};
+
+// Arka planda API'den son durumu alıp localStorage'a cache eden yardımcı
+export const refreshBoardDataFromApi = async (): Promise<BoardData | null> => {
+  try {
+    const res = await fetch('/api/board');
+    if (!res.ok) return null;
+    const json = (await res.json()) as BoardData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+    return json;
+  } catch (e) {
+    console.warn('GET /api/board failed, falling back to cache');
+    return null;
+  }
+};
+
+export const uploadMedia = async (dataUrl: string, suggestedName?: string): Promise<string> => {
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, suggestedName }),
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const json = await res.json();
+    return json.url as string;
+  } catch (e) {
+    console.error('Failed to upload media', e);
+    return dataUrl; // fallback: data URL olarak bırak
   }
 };
 

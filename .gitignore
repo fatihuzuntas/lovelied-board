@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+ 
+# Local user data (JSON + images)
+user-data/
+
+# Electron build output
+release/
+*.dmg
+*.exe
+*.AppImage

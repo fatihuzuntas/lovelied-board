@@ -1,0 +1,33 @@
+{
+  "slides": [
+    {
+      "id": "s1",
+      "type": "announcement",
+      "title": "Hoş Geldiniz! 🎉",
+      "body": "Dijital okul panosuna hoş geldiniz.",
+      "media": "",
+      "animation": "slide-left",
+      "duration": 10,
+      "priority": 1
+    }
+  ],
+  "duty": {
+    "date": "",
+    "teachers": [],
+    "students": []
+  },
+  "birthdays": [],
+  "countdowns": [],
+  "marqueeTexts": [
+    { "id": "m1", "text": "Koridorlarda sessiz olalım.", "priority": "normal" }
+  ],
+  "config": {
+    "schoolName": "",
+    "timezone": "Europe/Istanbul",
+    "primaryColor": "",
+    "secondaryColor": ""
+  },
+  "quotes": [],
+  "bellSchedule": [],
+  "daySchedules": []
+}

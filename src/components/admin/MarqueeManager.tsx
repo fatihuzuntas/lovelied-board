@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loadBoardData, updateMarqueeTexts } from '@/lib/storage';
+import { loadBoardData, updateMarqueeTexts, refreshBoardDataFromApi } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,10 +18,18 @@ export const MarqueeManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ text: '', priority: 'normal' as 'normal' | 'urgent' | 'critical' });
 
-  const handleSave = () => {
-    updateMarqueeTexts(marqueeTexts);
+  const handleSave = async () => {
+    await updateMarqueeTexts(marqueeTexts);
     toast.success('Kayan yazılar kaydedildi');
   };
+
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await refreshBoardDataFromApi();
+      if (data) setMarqueeTexts(data.marqueeTexts || []);
+    })();
+  }, []);
 
   const handleAdd = () => {
     if (!newMarquee.text.trim()) {

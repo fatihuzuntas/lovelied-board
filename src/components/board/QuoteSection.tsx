@@ -5,9 +5,10 @@ import { BookOpen, Heart, Sparkles } from 'lucide-react';
 
 interface QuoteSectionProps {
   quotes: Quote[];
+  compact?: boolean;
 }
 
-export const QuoteSection = ({ quotes }: QuoteSectionProps) => {
+export const QuoteSection = ({ quotes, compact = false }: QuoteSectionProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
 
@@ -20,7 +21,7 @@ export const QuoteSection = ({ quotes }: QuoteSectionProps) => {
         setCurrentIndex((prev) => (prev + 1) % quotes.length);
         setIsFlipping(false);
       }, 300);
-    }, 15000); // 15 seconds
+    }, 7500); // 7.5 seconds (yarıya düşürüldü)
 
     return () => clearInterval(interval);
   }, [quotes.length]);
@@ -54,8 +55,8 @@ export const QuoteSection = ({ quotes }: QuoteSectionProps) => {
   };
 
   return (
-    <Card className={`bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 transition-transform duration-300 ${isFlipping ? 'animate-flip' : ''}`}>
-      <CardContent className="p-6">
+    <Card className={`bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 transition-transform duration-300 ${isFlipping ? 'animate-flip' : ''} h-full flex flex-col ${compact ? 'max-h-40 overflow-hidden' : ''}`}>
+      <CardContent className={`flex-1 min-h-0 flex flex-col ${compact ? 'p-4' : 'p-6'}`}>
         <div className="flex items-center gap-2 mb-3">
           <div className="text-primary">
             {getIcon()}
@@ -64,7 +65,7 @@ export const QuoteSection = ({ quotes }: QuoteSectionProps) => {
             {getTypeLabel()}
           </span>
         </div>
-        <p className="text-lg leading-relaxed text-foreground/90 italic">
+        <p className={`leading-relaxed text-foreground/90 italic line-clamp-5 ${compact ? 'text-base' : 'text-lg'}`}>
           "{currentQuote.text}"
         </p>
         {currentQuote.source && (

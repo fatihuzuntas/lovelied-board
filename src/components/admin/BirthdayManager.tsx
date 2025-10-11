@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Birthday } from '@/types/board';
-import { loadBoardData, updateBirthdays } from '@/lib/storage';
+import { loadBoardData, updateBirthdays, refreshBoardDataFromApi } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,10 +18,18 @@ export const BirthdayManager = () => {
     type: 'student',
   });
 
-  const handleSave = () => {
-    updateBirthdays(birthdays);
+  const handleSave = async () => {
+    await updateBirthdays(birthdays);
     toast.success('Doğum günü listesi kaydedildi');
   };
+
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await refreshBoardDataFromApi();
+      if (data) setBirthdays(data.birthdays || []);
+    })();
+  }, []);
 
   const handleAdd = () => {
     if (!newBirthday.name || !newBirthday.date || !newBirthday.class) {

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Countdown } from '@/types/board';
 import { Card } from '@/components/ui/card';
+import { loadBoardData } from '@/lib/storage';
 import { Clock, Bell } from 'lucide-react';
 
 interface CountdownBarFlipProps {
@@ -10,7 +11,7 @@ interface CountdownBarFlipProps {
 export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [bellTime, setBellTime] = useState<string>('');
+  const [bellInfo, setBellInfo] = useState<{ label: string; minutes: number } | null>(null);
 
   const calculateDaysLeft = (dateString: string): number => {
     const targetDate = new Date(dateString);
@@ -41,66 +42,89 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
   };
 
   const calculateBellTime = () => {
+    const { daySchedules } = loadBoardData();
     const now = new Date();
-    const currentMinute = now.getHours() * 60 + now.getMinutes();
-    
-    // Ders zili saatleri (dakika cinsinden)
-    const bellTimes = [
-      8 * 60 + 30,   // 08:30
-      9 * 60 + 20,   // 09:20
-      10 * 60 + 10,  // 10:10
-      11 * 60,       // 11:00
-      11 * 60 + 50,  // 11:50
-      12 * 60 + 40,  // 12:40
-      13 * 60 + 30,  // 13:30
-      14 * 60 + 20,  // 14:20
-      15 * 60 + 10,  // 15:10
-      16 * 60,       // 16:00
-    ];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    for (const bellTime of bellTimes) {
-      if (currentMinute < bellTime) {
-        const diff = bellTime - currentMinute;
+    const dayIndex = now.getDay(); // 0: Pazar ... 6: Cumartesi
+    const dayKey = (
+      dayIndex === 1 ? 'monday' :
+      dayIndex === 2 ? 'tuesday' :
+      dayIndex === 3 ? 'wednesday' :
+      dayIndex === 4 ? 'thursday' :
+      dayIndex === 5 ? 'friday' : 'all'
+    ) as 'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+
+    const scheduleForDay = daySchedules.find(d => d.day === dayKey) || daySchedules.find(d => d.day === 'all');
+    if (!scheduleForDay || !scheduleForDay.schedule || scheduleForDay.schedule.length === 0) {
+      return null;
+    }
+
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(':').map(n => parseInt(n, 10));
+      return h * 60 + m;
+    };
+
+    const lessons = scheduleForDay.schedule
+      .filter(s => s.type === 'lesson')
+      .sort((a, b) => a.order - b.order)
+      .map(s => ({ start: toMinutes(s.startTime), end: toMinutes(s.endTime) }));
+
+    if (lessons.length === 0) return null;
+
+    // Önce ders içinde miyiz kontrol et
+    for (const l of lessons) {
+      if (currentMinutes >= l.start && currentMinutes < l.end) {
+        const diff = l.end - currentMinutes;
         const hours = Math.floor(diff / 60);
         const mins = diff % 60;
-        
-        if (hours > 0) {
-          return `${hours} saat ${mins} dakika`;
-        }
-        return `${mins} dakika`;
+        // Dersteyiz: teneffüse kalan dakika
+        return { label: 'Teneffüse', minutes: diff };
       }
     }
-    
-    return 'Dersler bitti';
+
+    // Değilsek, sıradaki dersin başlangıcına kadar süre
+    const upcoming = lessons.find(l => currentMinutes < l.start);
+    if (upcoming) {
+      const diff = upcoming.start - currentMinutes;
+      const hours = Math.floor(diff / 60);
+      const mins = diff % 60;
+      return { label: 'Ders başlamasına', minutes: diff };
+    }
+
+    return { label: 'Ders başlamasına', minutes: 0 };
   };
 
   useEffect(() => {
     const bellTimer = setInterval(() => {
-      setBellTime(calculateBellTime());
+      setBellInfo(calculateBellTime());
     }, 30000); // Her 30 saniyede bir güncelle
 
-    setBellTime(calculateBellTime());
+    setBellInfo(calculateBellTime());
 
     return () => clearInterval(bellTimer);
   }, []);
 
+  const activeCountdowns = useMemo(() => (
+    countdowns
+      .filter(c => calculateDaysLeft(c.date) >= 0)
+  ), [countdowns]);
+
   useEffect(() => {
-    const activeCountdowns = countdowns.filter(c => calculateDaysLeft(c.date) >= 0);
     if (activeCountdowns.length === 0) return;
+    if (currentIndex >= activeCountdowns.length) setCurrentIndex(0);
 
     const timer = setInterval(() => {
       setIsFlipping(true);
-      
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % activeCountdowns.length);
         setIsFlipping(false);
       }, 300);
-    }, 5000); // Her 5 saniyede değiş
+    }, 5000);
 
     return () => clearInterval(timer);
-  }, [countdowns]);
+  }, [activeCountdowns.length]);
 
-  const activeCountdowns = countdowns.filter(c => calculateDaysLeft(c.date) >= 0);
   if (activeCountdowns.length === 0) return null;
 
   const currentCountdown = activeCountdowns[currentIndex];
@@ -136,9 +160,9 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       <Card className="p-4 border-l-4 border-l-orange-500 shadow-md bg-orange-50">
         <div className="text-center">
           <Bell className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-          <p className="font-bold text-base text-orange-900 mb-1">Sonraki Zile</p>
+          <p className="font-bold text-base text-orange-900 mb-1">{bellInfo?.label || 'Zil'}</p>
           <div className="bg-white/80 rounded-lg p-2.5">
-            <span className="text-xl font-bold text-orange-700">{bellTime}</span>
+            <span className="text-xl font-bold text-orange-700">{bellInfo ? `${bellInfo.minutes} dk` : '—'}</span>
           </div>
         </div>
       </Card>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Quote } from '@/types/board';
-import { loadBoardData, updateQuotes } from '@/lib/storage';
+import { loadBoardData, updateQuotes, refreshBoardDataFromApi } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,10 +18,18 @@ export const QuoteManager = () => {
     source: '',
   });
 
-  const handleSave = () => {
-    updateQuotes(quotes);
+  const handleSave = async () => {
+    await updateQuotes(quotes);
     toast.success('Sözler kaydedildi');
   };
+
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await refreshBoardDataFromApi();
+      if (data) setQuotes(data.quotes || []);
+    })();
+  }, []);
 
   const handleAdd = () => {
     if (!newQuote.text?.trim()) {

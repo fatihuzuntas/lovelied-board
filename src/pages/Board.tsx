@@ -7,7 +7,7 @@ import { CountdownBarFlip } from '@/components/board/CountdownBarFlip';
 import { MarqueeBar } from '@/components/board/MarqueeBar';
 import { QuoteSection } from '@/components/board/QuoteSection';
 import { BoardData } from '@/types/board';
-import { loadBoardData } from '@/lib/storage';
+import { loadBoardData, refreshBoardDataFromApi } from '@/lib/storage';
 
 const Board = () => {
   const [boardData, setBoardData] = useState<BoardData>(loadBoardData());
@@ -19,7 +19,10 @@ const Board = () => {
 
     window.addEventListener('storage', handleStorageChange);
     
-    // Poll for changes every 2 seconds (for same-window updates)
+    // İlk yüklemede API'den tazele ve her 2 sn'de bir cache'i oku
+    refreshBoardDataFromApi().then((data) => {
+      if (data) setBoardData(data);
+    });
     const interval = setInterval(() => {
       setBoardData(loadBoardData());
     }, 2000);
@@ -39,12 +42,12 @@ const Board = () => {
         <div className="flex-1 flex flex-col gap-3">
           <div className="flex-1 flex gap-3 overflow-hidden">
             {/* Sol Sütun */}
-            <aside className="w-72 flex flex-col overflow-y-auto">
+            <aside className="w-60 flex-shrink-0 flex flex-col overflow-y-auto">
               <CountdownBarFlip countdowns={boardData.countdowns} />
             </aside>
             
             {/* Orta Sütun - En Geniş */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-w-0">
               <NewsSlider slides={boardData.slides} />
             </div>
           </div>
@@ -54,10 +57,29 @@ const Board = () => {
         </div>
         
         {/* Sağ Sütun - Sol ile aynı genişlikte */}
-        <aside className="w-72 flex flex-col gap-3 overflow-y-auto">
-          <DutySectionFlip duty={boardData.duty} />
-          <BirthdaySectionFlip birthdays={boardData.birthdays} />
-          <QuoteSection quotes={boardData.quotes} />
+        <aside className="w-60 flex-shrink-0 flex flex-col gap-2 overflow-hidden min-h-0">
+          {(() => {
+            const today = new Date();
+            const hasBirthdayToday = boardData.birthdays.some(b => {
+              const parts = b.date.split('-');
+              if (parts.length !== 3) return false;
+              const y = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10);
+              const d = parseInt(parts[2], 10);
+              if (Number.isNaN(m) || Number.isNaN(d)) return false;
+              const bd = new Date(y, m - 1, d);
+              return today.getMonth() === bd.getMonth() && today.getDate() === bd.getDate();
+            });
+            return (
+              <>
+                <DutySectionFlip duty={boardData.duty} />
+                <BirthdaySectionFlip birthdays={boardData.birthdays} />
+                <div className="flex-1 min-h-0">
+                  <QuoteSection quotes={boardData.quotes} compact={hasBirthdayToday} />
+                </div>
+              </>
+            );
+          })()}
         </aside>
       </main>
     </div>

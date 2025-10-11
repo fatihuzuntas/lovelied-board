@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DutyInfo } from '@/types/board';
-import { loadBoardData, updateDuty } from '@/lib/storage';
+import { loadBoardData, updateDuty, refreshBoardDataFromApi } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,18 @@ export const DutyManager = () => {
   const [editTeacherForm, setEditTeacherForm] = useState<{ name: string; area?: string }>({ name: '', area: '' });
   const [editStudentForm, setEditStudentForm] = useState<{ name: string; area?: string }>({ name: '', area: '' });
 
-  const handleSave = () => {
-    updateDuty(duty);
+  const handleSave = async () => {
+    await updateDuty(duty);
     toast.success('Nöbetçi bilgileri kaydedildi');
   };
+
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await refreshBoardDataFromApi();
+      if (data) setDuty(data.duty);
+    })();
+  }, []);
 
   const handleAddTeacher = () => {
     if (!newTeacher.name.trim()) return;

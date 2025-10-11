@@ -116,20 +116,24 @@ export const CountdownManager = () => {
                   {newCountdown.icon}
                 </Button>
                 {showIconPicker && (
-                  <div className="absolute z-10 mt-2 p-3 bg-card border rounded-lg shadow-lg grid grid-cols-10 gap-2 max-h-64 overflow-auto">
-                    {colorfulIcons.map((icon, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className="text-2xl hover:bg-muted p-2 rounded transition-colors"
-                        onClick={() => {
-                          setNewCountdown({ ...newCountdown, icon });
-                          setShowIconPicker(false);
-                        }}
-                      >
-                        {icon}
-                      </button>
-                    ))}
+                  <div className="absolute z-10 mt-2 bg-card border rounded-xl shadow-xl left-1/2 -translate-x-1/2 w-[420px]">
+                    <div className="p-2 max-h-72 overflow-auto">
+                      <div className="grid grid-cols-9 gap-1">
+                        {colorfulIcons.map((icon, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="text-2xl hover:bg-muted rounded-md h-9 w-9 flex items-center justify-center"
+                            onClick={() => {
+                              setNewCountdown({ ...newCountdown, icon });
+                              setShowIconPicker(false);
+                            }}
+                          >
+                            {icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Birthday } from '@/types/board';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Cake } from 'lucide-react';
 
 interface BirthdaySectionFlipProps {
@@ -43,11 +43,6 @@ export const BirthdaySectionFlip = ({ birthdays }: BirthdaySectionFlipProps) => 
 
   const allBirthdays = [...todayBirthdays, ...upcomingBirthdays];
 
-  // If no birthdays, don't render anything
-  if (allBirthdays.length === 0) {
-    return null;
-  }
-
   useEffect(() => {
     if (allBirthdays.length <= 1) return;
 
@@ -61,36 +56,41 @@ export const BirthdaySectionFlip = ({ birthdays }: BirthdaySectionFlipProps) => 
 
     return () => clearInterval(timer);
   }, [allBirthdays.length]);
+  if (allBirthdays.length === 0) {
+    return null;
+  }
 
   const currentBirthday = allBirthdays[currentIndex];
   const isToday = todayBirthdays.includes(currentBirthday);
 
   return (
-    <Card className={`shadow-lg border-l-4 border-l-secondary transition-all duration-300 ${isFlipping ? 'animate-flip' : ''}`}>
-      <CardHeader className="bg-secondary/5 py-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Cake className="h-5 w-5 text-secondary" />
-          Doğum Günleri
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div
-          className={`p-4 rounded-lg text-center min-h-[120px] flex flex-col justify-center ${
-            isToday ? 'bg-gradient-to-r from-secondary/20 to-secondary/10 animate-glow' : 'bg-muted/50'
-          }`}
-        >
-          {isToday && <p className="text-xs font-semibold text-secondary mb-2">🎉 Bugün</p>}
-          {!isToday && <p className="text-xs font-semibold text-muted-foreground mb-2">📅 Bu Hafta</p>}
-          
-          <p className="text-lg font-bold text-foreground mb-1">{currentBirthday.name}</p>
-          <p className="text-xs text-muted-foreground mb-2">{currentBirthday.class}</p>
-          
-          {isToday && <div className="text-2xl">🎂 🎈 🎁</div>}
-          {!isToday && (
-            <p className="text-xs text-muted-foreground">
-              {new Date(currentBirthday.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
-            </p>
-          )}
+    <Card className={`shadow border-l-4 border-l-secondary transition-all duration-300 ${isFlipping ? 'animate-flip' : ''} flex-none`}>
+      <CardContent className="p-2">
+        <div className={`rounded-md px-3 py-2 ${isToday ? 'bg-secondary/10' : 'bg-muted/50'}`}>
+          {/* Üst satır: Sol "Doğum Günü", sağda rozet */}
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground">Doğum Günü</span>
+            </div>
+            {isToday ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">Bugün</span>
+            ) : (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/70">
+                {new Date(currentBirthday.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+              </span>
+            )}
+          </div>
+
+          {/* Alt satır: Sol büyük pasta ikonu, sağda isim ve altında sınıf/branş */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-12 w-12 rounded bg-secondary/15 flex-shrink-0">
+              <Cake className="h-7 w-7 text-secondary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground text-right truncate">{currentBirthday.name}</p>
+              <p className="text-[11px] text-muted-foreground text-right truncate">{currentBirthday.class}</p>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

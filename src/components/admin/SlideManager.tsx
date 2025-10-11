@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Slide } from '@/types/board';
-import { loadBoardData, updateSlides } from '@/lib/storage';
+import { loadBoardData, updateSlides, uploadMedia } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -69,14 +69,15 @@ export const SlideManager = () => {
     setEditForm({});
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const base64String = reader.result as string;
-      setEditForm({ ...editForm, media: base64String });
+      const url = await uploadMedia(base64String, file.name.replace(/\.[^.]+$/, ''));
+      setEditForm({ ...editForm, media: url });
       toast.success('Medya yüklendi');
     };
     reader.readAsDataURL(file);
