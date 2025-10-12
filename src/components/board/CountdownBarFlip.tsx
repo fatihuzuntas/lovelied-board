@@ -42,7 +42,12 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
   };
 
   const calculateBellTime = () => {
-    const { daySchedules } = loadBoardData();
+    const boardData = loadBoardData();
+    if (!boardData || !boardData.daySchedules || boardData.daySchedules.length === 0) {
+      return null;
+    }
+    
+    const { daySchedules } = boardData;
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -55,7 +60,7 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       dayIndex === 5 ? 'friday' : 'all'
     ) as 'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
 
-    const scheduleForDay = daySchedules.find(d => d.day === dayKey) || daySchedules.find(d => d.day === 'all');
+    const scheduleForDay = daySchedules?.find(d => d.day === dayKey) || daySchedules?.find(d => d.day === 'all');
     if (!scheduleForDay || !scheduleForDay.schedule || scheduleForDay.schedule.length === 0) {
       return null;
     }

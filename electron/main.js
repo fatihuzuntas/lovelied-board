@@ -37,7 +37,7 @@ function createBoardWindow() {
 
   // Load the board view
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5174/');
+    mainWindow.loadURL('http://localhost:5179/');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
@@ -67,7 +67,7 @@ function createAdminWindow() {
 
   // Load the admin panel
   if (process.env.NODE_ENV === 'development') {
-    adminWindow.loadURL('http://localhost:5174/admin');
+    adminWindow.loadURL('http://localhost:5179/admin');
     adminWindow.webContents.openDevTools();
   } else {
     adminWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'admin' });
