@@ -18,7 +18,7 @@ const colorfulIcons = [
 ];
 
 export const CountdownManager = () => {
-  const [countdowns, setCountdowns] = useState<Countdown[]>(loadBoardData().countdowns);
+  const [countdowns, setCountdowns] = useState<Countdown[]>([]);
   const [newCountdown, setNewCountdown] = useState<Partial<Countdown>>({
     name: '',
     date: '',
@@ -31,6 +31,14 @@ export const CountdownManager = () => {
     updateCountdowns(countdowns);
     toast.success('Geri sayımlar kaydedildi');
   };
+
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await loadBoardData();
+      setCountdowns(data.countdowns || []);
+    })();
+  }, []);
 
   const handleAdd = () => {
     if (!newCountdown.name || !newCountdown.date) {

@@ -10,7 +10,7 @@ import { Save, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const BirthdayManager = () => {
-  const [birthdays, setBirthdays] = useState<Birthday[]>(loadBoardData().birthdays);
+  const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [newBirthday, setNewBirthday] = useState<Partial<Birthday>>({
     name: '',
     date: '',

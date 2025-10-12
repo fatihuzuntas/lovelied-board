@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadBoardData, saveBoardData } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,11 +8,22 @@ import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const SettingsManager = () => {
-  const data = loadBoardData();
-  const [schoolName, setSchoolName] = useState(data.config.schoolName);
-  const [logoUrl, setLogoUrl] = useState(data.config.logoUrl || '');
+  const [schoolName, setSchoolName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const handleSave = () => {
+  // Açılışta güncel veriyi çek
+  useEffect(() => {
+    (async () => {
+      const data = await loadBoardData();
+      setSchoolName(data.config.schoolName || '');
+      setLogoUrl(data.config.logoUrl || '');
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    const data = await loadBoardData();
     const updatedData = {
       ...data,
       config: {
@@ -21,7 +32,7 @@ export const SettingsManager = () => {
         logoUrl: logoUrl || undefined,
       },
     };
-    saveBoardData(updatedData);
+    await saveBoardData(updatedData);
     toast.success('Ayarlar kaydedildi');
   };
 
@@ -36,6 +47,17 @@ export const SettingsManager = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Ayarlar yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
