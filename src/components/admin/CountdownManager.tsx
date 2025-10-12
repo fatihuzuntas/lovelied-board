@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Countdown } from '@/types/board';
 import { loadBoardData, updateCountdowns } from '@/lib/storage';
 import { Button } from '@/components/ui/button';

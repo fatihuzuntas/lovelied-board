@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Quote } from '@/types/board';
 import { loadBoardData, updateQuotes } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
