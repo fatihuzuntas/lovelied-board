@@ -83,14 +83,14 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <style jsx>{`
+    <div className="min-h-screen bg-background">
+      <style>{`
         .sidebar-no-scroll {
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* Internet Explorer 10+ */
+          scrollbar-width: none !important; /* Firefox */
+          -ms-overflow-style: none !important; /* Internet Explorer 10+ */
         }
         .sidebar-no-scroll::-webkit-scrollbar {
-          display: none; /* WebKit */
+          display: none !important; /* WebKit */
         }
       `}</style>
       {/* Mobile Overlay */}
@@ -102,41 +102,41 @@ const Admin = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 h-screen sidebar-no-scroll ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 h-screen sidebar-no-scroll ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
-        <div className="p-2 border-b">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-                <Home className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="p-1 border-b">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center space-x-1">
+              <div className="w-5 h-5 bg-primary rounded flex items-center justify-center">
+                <Home className="h-3 w-3 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-foreground truncate">{schoolName}</h1>
+                <h1 className="text-xs font-bold text-foreground truncate">{schoolName}</h1>
                 <p className="text-xs text-muted-foreground">Yönetim</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden h-6 w-6 p-0"
+              className="lg:hidden h-5 w-5 p-0"
               onClick={() => setSidebarOpen(false)}
             >
-              <X className="h-3 w-3" />
+              <X className="h-2.5 w-2.5" />
             </Button>
           </div>
           <Link to="/board">
-            <Button variant="outline" size="sm" className="w-full text-xs h-6">
-              <ArrowLeft className="mr-1 h-2.5 w-2.5" />
+            <Button variant="outline" size="sm" className="w-full text-xs h-5">
+              <ArrowLeft className="mr-1 h-2 w-2" />
               Panoya Dön
             </Button>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-2 overflow-hidden">
-          <div className="space-y-1">
+        <nav className="flex-1 p-1 overflow-hidden">
+          <div className="space-y-0.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -146,13 +146,13 @@ const Admin = () => {
                     setActiveSection(item.id);
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center space-x-2 px-2 py-1.5 rounded text-left transition-colors ${
+                  className={`w-full flex items-center space-x-1 px-1 py-1 rounded text-left transition-colors ${
                     activeSection === item.id
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                  <Icon className="h-3 w-3 flex-shrink-0" />
                   <span className="font-medium text-xs truncate">{item.label}</span>
                 </button>
               );
@@ -161,7 +161,7 @@ const Admin = () => {
         </nav>
 
         {/* Footer */}
-        <div className="p-2 border-t">
+        <div className="p-1 border-t">
           <div className="text-xs text-muted-foreground text-center">
             <p className="text-xs">v1.0.1</p>
           </div>
@@ -169,7 +169,7 @@ const Admin = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="lg:ml-64">
         {/* Top Bar */}
         <header className="bg-card border-b px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -199,7 +199,7 @@ const Admin = () => {
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="p-6">
           <Card>
             <CardContent className="p-6">
               {renderContent()}
