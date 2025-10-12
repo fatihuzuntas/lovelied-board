@@ -9,7 +9,7 @@ import { Save, Plus, X, Edit, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const DutyManager = () => {
-  const [duty, setDuty] = useState<DutyInfo>(loadBoardData().duty);
+  const [duty, setDuty] = useState<DutyInfo>({ date: '', teachers: [], students: [] });
   const [newStudent, setNewStudent] = useState({ name: '', area: '' });
   const [newTeacher, setNewTeacher] = useState({ name: '', area: '' });
   const [editingTeacher, setEditingTeacher] = useState<number | null>(null);
@@ -25,8 +25,8 @@ export const DutyManager = () => {
   // Açılışta güncel veriyi çek
   useEffect(() => {
     (async () => {
-      const data = await refreshBoardDataFromApi();
-      if (data) setDuty(data.duty);
+      const data = await loadBoardData();
+      if (data && data.duty) setDuty(data.duty);
     })();
   }, []);
 
