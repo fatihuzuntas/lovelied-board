@@ -97,15 +97,15 @@ const Admin = () => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
-        <div className="p-6 border-b">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Home className="h-6 w-6 text-primary-foreground" />
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Home className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">{schoolName}</h1>
-                <p className="text-sm text-muted-foreground">Yönetim Paneli</p>
+                <h1 className="text-base font-bold text-foreground">{schoolName}</h1>
+                <p className="text-xs text-muted-foreground">Yönetim Paneli</p>
               </div>
             </div>
             <Button
@@ -118,15 +118,15 @@ const Admin = () => {
             </Button>
           </div>
           <Link to="/board">
-            <Button variant="outline" size="sm" className="w-full">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" className="w-full text-xs">
+              <ArrowLeft className="mr-2 h-3 w-3" />
               Panoya Dön
             </Button>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-1 overflow-hidden">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -136,24 +136,24 @@ const Admin = () => {
                   setActiveSection(item.id);
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
                   activeSection === item.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
+                <Icon className="h-4 w-4" />
+                <span className="font-medium text-sm">{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t">
+        <div className="p-3 border-t">
           <div className="text-xs text-muted-foreground text-center">
             <p>Lovelied Board v1.0.1</p>
-            <p>Dijital Okul Panosu</p>
+            <p className="text-xs">Dijital Okul Panosu</p>
           </div>
         </div>
       </div>
