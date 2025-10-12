@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loadBoardData, updateMarqueeTexts, refreshBoardDataFromApi } from '@/lib/storage';
+import { loadBoardData, updateMarqueeTexts } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,8 +26,8 @@ export const MarqueeManager = () => {
   // Açılışta güncel veriyi çek
   useEffect(() => {
     (async () => {
-      const data = await refreshBoardDataFromApi();
-      if (data) setMarqueeTexts(data.marqueeTexts || []);
+      const data = await loadBoardData();
+      setMarqueeTexts(data.marqueeTexts || []);
     })();
   }, []);
 

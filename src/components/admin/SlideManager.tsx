@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Slide } from '@/types/board';
 import { loadBoardData, updateSlides, uploadMedia } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
@@ -11,14 +11,36 @@ import { Plus, Trash2, Edit, Save, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const SlideManager = () => {
-  const [slides, setSlides] = useState<Slide[]>(loadBoardData().slides);
+  const [slides, setSlides] = useState<Slide[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Slide>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => {
-    updateSlides(slides);
-    toast.success('Duyurular kaydedildi');
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await loadBoardData();
+        setSlides(data.slides);
+      } catch (error) {
+        console.error('Veri yükleme hatası:', error);
+        toast.error('Veriler yüklenemedi');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      await updateSlides(slides);
+      toast.success('Duyurular kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Duyurular kaydedilemedi');
+    }
   };
 
   const handleAdd = () => {
@@ -82,6 +104,19 @@ export const SlideManager = () => {
     };
     reader.readAsDataURL(file);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Veriler yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,25 +1,25 @@
-import { app, BrowserWindow, Menu, dialog } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import express from 'express';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 import { fileURLToPath } from 'url';
+
+// SQLite ve Migration modüllerini import et
+import DatabaseManager from './database.js';
+import MigrationManager from './migration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow; // Board görünümü
 let adminWindow; // Admin paneli
-let serverApp;
-let server;
+let dbManager;
+let migrationManager;
 
-const userDataDir = path.join(app.getPath('userData'), 'user-data');
-const imagesDir = path.join(userDataDir, 'images');
-const boardJsonPath = path.join(userDataDir, 'board.json');
-
-function ensureDirs() {
-  if (!fs.existsSync(userDataDir)) fs.mkdirSync(userDataDir, { recursive: true });
-  if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
-}
+// Güncelleme ayarları
+autoUpdater.checkForUpdatesAndNotify = false; // Otomatik güncelleme kapalı
+autoUpdater.autoDownload = false; // Manuel indirme
 
 function createBoardWindow() {
   mainWindow = new BrowserWindow({
@@ -29,16 +29,22 @@ function createBoardWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    // icon: path.join(__dirname, '../public/favicon.ico'),
+    show: false, // İlk yükleme tamamlanana kadar gizle
   });
 
   // Load the board view
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:8083/');
+    mainWindow.loadURL('http://localhost:5174/');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -53,17 +59,23 @@ function createAdminWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    // icon: path.join(__dirname, '../public/favicon.ico'),
+    show: false, // İlk yükleme tamamlanana kadar gizle
   });
 
   // Load the admin panel
   if (process.env.NODE_ENV === 'development') {
-    adminWindow.loadURL('http://localhost:8083/admin');
+    adminWindow.loadURL('http://localhost:5174/admin');
     adminWindow.webContents.openDevTools();
   } else {
     adminWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'admin' });
   }
+
+  adminWindow.once('ready-to-show', () => {
+    adminWindow.show();
+  });
 
   adminWindow.on('closed', () => {
     adminWindow = null;
@@ -115,6 +127,29 @@ function createMenu() {
       ]
     },
     {
+      label: 'Güncelleme',
+      submenu: [
+        {
+          label: 'Güncelleme Kontrol Et',
+          click: () => {
+            checkForUpdates();
+          }
+        },
+        {
+          label: 'Güncellemeyi İndir',
+          click: () => {
+            downloadUpdate();
+          }
+        },
+        {
+          label: 'Güncellemeyi Kur',
+          click: () => {
+            installUpdate();
+          }
+        }
+      ]
+    },
+    {
       label: 'Yardım',
       submenu: [
         {
@@ -136,108 +171,228 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-function startLocalServer() {
-  ensureDirs();
-
-  serverApp = express();
-  serverApp.use(express.json({ limit: '50mb' }));
-  serverApp.use(express.static(path.join(__dirname, '../dist')));
-
-  // Serve images
-  serverApp.use('/user-data/images', express.static(imagesDir));
-
-  // GET /api/board
-  serverApp.get('/api/board', (req, res) => {
+// IPC Handlers - Veritabanı İşlemleri
+function setupIpcHandlers() {
+  // Board data işlemleri
+  ipcMain.handle('db:get-board-data', async () => {
     try {
-      if (!fs.existsSync(boardJsonPath)) {
-        const initial = {
-          slides: [],
-          duty: { date: new Date().toISOString().split('T')[0], teachers: [], students: [] },
-          birthdays: [],
-          countdowns: [],
-          marqueeTexts: [],
-          config: { schoolName: '', timezone: 'Europe/Istanbul', primaryColor: '', secondaryColor: '' },
-          quotes: [],
-          bellSchedule: [],
-          daySchedules: [],
-        };
-        fs.writeFileSync(boardJsonPath, JSON.stringify(initial, null, 2), 'utf-8');
-      }
-      const json = fs.readFileSync(boardJsonPath, 'utf-8');
-      res.setHeader('Content-Type', 'application/json');
-      res.send(json);
-    } catch (e) {
-      res.status(500).json({ error: 'Failed to read board.json' });
+      return await dbManager.getBoardData();
+    } catch (error) {
+      console.error('Board data okuma hatası:', error);
+      throw error;
     }
   });
 
-  // PUT /api/board
-  serverApp.put('/api/board', (req, res) => {
+  ipcMain.handle('db:save-board-data', async (event, data) => {
     try {
-      const body = JSON.stringify(req.body, null, 2);
-      fs.writeFileSync(boardJsonPath, body, 'utf-8');
-      res.json({ ok: true });
-    } catch (e) {
-      res.status(500).json({ error: 'Failed to write board.json' });
+      await dbManager.saveBoardData(data);
+      return { success: true };
+    } catch (error) {
+      console.error('Board data kaydetme hatası:', error);
+      throw error;
     }
   });
 
-  // POST /api/upload
-  serverApp.post('/api/upload', (req, res) => {
+  // Backup ve Restore
+  ipcMain.handle('db:backup', async () => {
     try {
-      const { dataUrl, suggestedName } = req.body;
-      if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
-        return res.status(400).json({ error: 'Missing or invalid dataUrl' });
-      }
-      const match = /^data:(.*?);base64,(.*)$/.exec(dataUrl);
-      if (!match) return res.status(400).json({ error: 'Invalid dataUrl' });
-      const mime = match[1];
-      const base64 = match[2];
-      const buffer = Buffer.from(base64, 'base64');
-      const ext = mime.split('/')[1] || 'bin';
-      const safeNameBase = (suggestedName || `media_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filename = `${safeNameBase}.${ext}`;
-      const filePath = path.join(imagesDir, filename);
-      fs.writeFileSync(filePath, buffer);
-      const url = `/user-data/images/${filename}`;
-      res.json({ url });
-    } catch (e) {
-      res.status(500).json({ error: 'Failed to upload file' });
+      const backupPath = await dbManager.backup();
+      return { success: true, path: backupPath };
+    } catch (error) {
+      console.error('Backup hatası:', error);
+      throw error;
     }
   });
 
-  server = serverApp.listen(0, 'localhost', () => {
-    const port = server.address().port;
-    console.log(`Local API server running on http://localhost:${port}`);
-    if (mainWindow) {
-      mainWindow.loadURL(`http://localhost:${port}`);
+  ipcMain.handle('db:restore', async (event, backupPath) => {
+    try {
+      const oldBackupPath = await dbManager.restore(backupPath);
+      return { success: true, oldBackupPath };
+    } catch (error) {
+      console.error('Restore hatası:', error);
+      throw error;
+    }
+  });
+
+  // Medya yükleme
+  ipcMain.handle('upload:media', async (event, dataUrl, suggestedName) => {
+    try {
+      const url = await migrationManager.uploadMedia(dataUrl, suggestedName);
+      return { success: true, url };
+    } catch (error) {
+      console.error('Medya yükleme hatası:', error);
+      throw error;
+    }
+  });
+
+  // Güncelleme işlemleri
+  ipcMain.handle('updater:check-for-updates', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { success: true, updateInfo: result.updateInfo };
+    } catch (error) {
+      console.error('Güncelleme kontrol hatası:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('updater:download-update', async () => {
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true };
+    } catch (error) {
+      console.error('Güncelleme indirme hatası:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('updater:install-update', async () => {
+    try {
+      autoUpdater.quitAndInstall();
+      return { success: true };
+    } catch (error) {
+      console.error('Güncelleme kurulum hatası:', error);
+      throw error;
+    }
+  });
+
+  // App metadata
+  ipcMain.handle('app:get-version', () => {
+    return app.getVersion();
+  });
+
+  ipcMain.handle('app:get-metadata', async (event, key) => {
+    try {
+      const value = await dbManager.getAppMetadata(key);
+      return { success: true, value };
+    } catch (error) {
+      console.error('Metadata okuma hatası:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('app:set-metadata', async (event, key, value) => {
+    try {
+      await dbManager.setAppMetadata(key, value);
+      return { success: true };
+    } catch (error) {
+      console.error('Metadata kaydetme hatası:', error);
+      throw error;
     }
   });
 }
 
-app.whenReady().then(() => {
-  if (process.env.NODE_ENV !== 'development') {
-    startLocalServer();
-  }
-  
-  // Her iki pencereyi de oluştur
-  createBoardWindow();
-  createAdminWindow();
-  
-  // Menüyü oluştur
-  createMenu();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createBoardWindow();
-      createAdminWindow();
+// Güncelleme fonksiyonları
+function checkForUpdates() {
+  autoUpdater.checkForUpdates().then(result => {
+    if (result && result.updateInfo) {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Güncelleme Mevcut',
+        message: `Yeni versiyon mevcut: ${result.updateInfo.version}`,
+        detail: result.updateInfo.releaseNotes || 'Güncelleme notları bulunamadı'
+      });
+    } else {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Güncelleme Yok',
+        message: 'Uygulamanız güncel durumda'
+      });
     }
+  }).catch(error => {
+    dialog.showErrorBox('Güncelleme Hatası', error.message);
   });
+}
+
+function downloadUpdate() {
+  autoUpdater.downloadUpdate().then(() => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'İndirme Tamamlandı',
+      message: 'Güncelleme başarıyla indirildi. Şimdi kurabilirsiniz.'
+    });
+  }).catch(error => {
+    dialog.showErrorBox('İndirme Hatası', error.message);
+  });
+}
+
+function installUpdate() {
+  autoUpdater.quitAndInstall();
+}
+
+// Güncelleme event handlers
+autoUpdater.on('checking-for-update', () => {
+  console.log('Güncelleme kontrol ediliyor...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Güncelleme mevcut:', info);
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('Güncelleme yok:', info);
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Güncelleme hatası:', err);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  console.log('İndirme ilerlemesi:', progressObj);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Güncelleme indirildi:', info);
+});
+
+// Uygulama başlatma
+app.whenReady().then(async () => {
+  try {
+    console.log('🚀 Lovelied Board başlatılıyor...');
+    
+    // Veritabanını başlat
+    dbManager = new DatabaseManager();
+    migrationManager = new MigrationManager();
+    
+    // Migrasyonu çalıştır
+    await migrationManager.init(dbManager);
+    
+    // IPC handlers'ı kur
+    setupIpcHandlers();
+    
+    // Pencereyi oluştur
+    createBoardWindow();
+    createAdminWindow();
+    
+    // Menüyü oluştur
+    createMenu();
+    
+    console.log('✅ Lovelied Board başlatıldı');
+    
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createBoardWindow();
+        createAdminWindow();
+      }
+    });
+  } catch (error) {
+    console.error('❌ Uygulama başlatma hatası:', error);
+    dialog.showErrorBox('Başlatma Hatası', 'Uygulama başlatılamadı: ' + error.message);
+    app.quit();
+  }
 });
 
 app.on('window-all-closed', () => {
-  if (server) server.close();
+  if (dbManager) {
+    dbManager.close();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  if (dbManager) {
+    dbManager.close();
   }
 });

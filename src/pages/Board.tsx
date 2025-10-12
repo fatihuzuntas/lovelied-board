@@ -7,31 +7,44 @@ import { CountdownBarFlip } from '@/components/board/CountdownBarFlip';
 import { MarqueeBar } from '@/components/board/MarqueeBar';
 import { QuoteSection } from '@/components/board/QuoteSection';
 import { BoardData } from '@/types/board';
-import { loadBoardData, refreshBoardDataFromApi } from '@/lib/storage';
+import { loadBoardData } from '@/lib/storage';
 
 const Board = () => {
-  const [boardData, setBoardData] = useState<BoardData>(loadBoardData());
+  const [boardData, setBoardData] = useState<BoardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setBoardData(loadBoardData());
+    const loadData = async () => {
+      try {
+        const data = await loadBoardData();
+        setBoardData(data);
+      } catch (error) {
+        console.error('Board data yükleme hatası:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    loadData();
     
-    // İlk yüklemede API'den tazele ve her 2 sn'de bir cache'i oku
-    refreshBoardDataFromApi().then((data) => {
-      if (data) setBoardData(data);
-    });
-    const interval = setInterval(() => {
-      setBoardData(loadBoardData());
-    }, 2000);
+    // Her 5 saniyede bir verileri yenile
+    const interval = setInterval(loadData, 5000);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
   }, []);
+
+  if (loading || !boardData) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">

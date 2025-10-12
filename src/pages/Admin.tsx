@@ -11,6 +11,7 @@ import { MarqueeManager } from '@/components/admin/MarqueeManager';
 import { SettingsManager } from '@/components/admin/SettingsManager';
 import { QuoteManager } from '@/components/admin/QuoteManager';
 import { BellScheduleManager } from '@/components/admin/BellScheduleManager';
+import { UpdateManager } from '@/components/admin/UpdateManager';
 
 const Admin = () => {
   return (
@@ -34,7 +35,7 @@ const Admin = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="slides" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-2">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-9 gap-2">
             <TabsTrigger value="slides">Duyurular</TabsTrigger>
             <TabsTrigger value="duty">Nöbet</TabsTrigger>
             <TabsTrigger value="birthdays">Doğum Günleri</TabsTrigger>
@@ -43,6 +44,7 @@ const Admin = () => {
             <TabsTrigger value="quotes">Ayet/Söz</TabsTrigger>
             <TabsTrigger value="bell">Ders Saatleri</TabsTrigger>
             <TabsTrigger value="settings">Ayarlar</TabsTrigger>
+            <TabsTrigger value="updates">Güncelleme</TabsTrigger>
           </TabsList>
 
           <TabsContent value="slides">
@@ -75,6 +77,10 @@ const Admin = () => {
 
           <TabsContent value="settings">
             <SettingsManager />
+          </TabsContent>
+
+          <TabsContent value="updates">
+            <UpdateManager />
           </TabsContent>
         </Tabs>
       </main>

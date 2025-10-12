@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DutyInfo } from '@/types/board';
-import { loadBoardData, updateDuty, refreshBoardDataFromApi } from '@/lib/storage';
+import { loadBoardData, updateDuty } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
