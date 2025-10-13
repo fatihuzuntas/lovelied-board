@@ -55,7 +55,10 @@ function createBoardWindow() {
     show: false, // İlk yükleme tamamlanana kadar gizle
     autoHideMenuBar: true,
     fullscreenable: true,
-    fullscreen: process.platform === 'win32'
+    fullscreen: process.platform === 'win32',
+    frame: process.platform !== 'win32' ? undefined : false,
+    kiosk: process.platform === 'win32',
+    alwaysOnTop: process.platform === 'win32'
   });
 
   // Load the board view
@@ -68,8 +71,10 @@ function createBoardWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     if (process.platform === 'win32') {
-      // Windows'ta tam ekranı zorla
+      // Windows'ta odak ve tam ekranı pekiştir
       mainWindow.setFullScreen(true);
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.focus();
     }
   });
 
