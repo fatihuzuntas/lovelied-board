@@ -1,7 +1,10 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
@@ -14,19 +17,16 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
-    },
-    {
-      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
     }
   ],
   "functions": {
-    "server.js": {
+    "api/board.js": {
+      "runtime": "nodejs18.x"
+    },
+    "api/upload.js": {
+      "runtime": "nodejs18.x"
+    },
+    "api/media/[filename].js": {
       "runtime": "nodejs18.x"
     }
   }

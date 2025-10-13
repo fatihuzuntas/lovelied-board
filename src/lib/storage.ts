@@ -268,7 +268,19 @@ export const loadBoardData = async (): Promise<BoardData> => {
       return data;
     }
     
-    // Web ortamında öncelikle IndexedDB'den yükle, yoksa localStorage fallback
+    // Web ortamında Vercel API'den yükle
+    try {
+      const response = await fetch('/api/board');
+      if (response.ok) {
+        const data = await response.json();
+        cacheData(data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('API okuma hatası, local storage deneniyor:', e);
+    }
+    
+    // API başarısızsa local storage'dan yükle
     try {
       const idbData = await idbGet<string>('kv', 'lovelied-board-data');
       if (idbData) {
@@ -328,7 +340,26 @@ export const saveBoardData = async (data: BoardData): Promise<void> => {
       return;
     }
     
-    // Web ortamında IndexedDB'ye kaydet (quota aşımı olmaması için)
+    // Web ortamında Vercel API'ye kaydet
+    try {
+      const response = await fetch('/api/board', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.ok) {
+        cacheData(data);
+        console.log('Web ortamında veriler API\'ye kaydedildi');
+        return;
+      }
+    } catch (e) {
+      console.warn('API yazma hatası, local storage fallback denenecek:', e);
+    }
+    
+    // API başarısızsa local storage'a kaydet
     try {
       await idbSet('kv', 'lovelied-board-data', JSON.stringify(data));
       cacheData(data);
@@ -356,7 +387,25 @@ export const uploadMedia = async (dataUrl: string, suggestedName?: string): Prom
       return result.url;
     }
     
-    // Web ortamında dataUrl'i IndexedDB'ye kaydet ve referans döndür
+    // Web ortamında Vercel API'ye yükle
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dataUrl, suggestedName }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.url;
+      }
+    } catch (e) {
+      console.warn('API medya yükleme hatası, local storage fallback denenecek:', e);
+    }
+    
+    // API başarısızsa local storage'a kaydet
     const mediaId = `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     try {
       await idbSet('media', mediaId, dataUrl);
@@ -381,6 +430,11 @@ export const resolveMediaUrl = async (url?: string): Promise<string | undefined>
     if (isElectron() && url.startsWith('/user-data/media/')) {
       const result = await window.electron!.ipcRenderer.invoke('media:get-data-url', url);
       if (result && result.dataUrl) return result.dataUrl as string;
+    }
+    
+    // Web ortamında Vercel API medya URL'lerini çözümle
+    if (url.startsWith('/api/media/')) {
+      return url; // Vercel'de doğrudan kullanılabilir
     }
     
     // Web ortamında idb-media:// ve web-media:// referanslarını çözümle
