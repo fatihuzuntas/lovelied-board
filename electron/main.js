@@ -53,6 +53,9 @@ function createBoardWindow() {
     },
     // icon: path.join(__dirname, '../public/favicon.ico'),
     show: false, // İlk yükleme tamamlanana kadar gizle
+    autoHideMenuBar: true,
+    fullscreenable: true,
+    fullscreen: process.platform === 'win32'
   });
 
   // Load the board view
@@ -64,6 +67,10 @@ function createBoardWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    if (process.platform === 'win32') {
+      // Windows'ta tam ekranı zorla
+      mainWindow.setFullScreen(true);
+    }
   });
 
   mainWindow.on('closed', () => {
