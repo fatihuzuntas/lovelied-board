@@ -42,6 +42,7 @@ autoUpdater.checkForUpdatesAndNotify = false; // Otomatik güncelleme kapalı
 autoUpdater.autoDownload = false; // Manuel indirme
 
 function createBoardWindow() {
+  const isDev = process.env.NODE_ENV === 'development';
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -55,10 +56,11 @@ function createBoardWindow() {
     show: false, // İlk yükleme tamamlanana kadar gizle
     autoHideMenuBar: true,
     fullscreenable: true,
-    fullscreen: process.platform === 'win32',
-    frame: process.platform !== 'win32' ? undefined : false,
-    kiosk: process.platform === 'win32',
-    alwaysOnTop: process.platform === 'win32'
+    // Kiosk/tam ekran sadece üretimde zorlanır; geliştirmede kullanıcı serbest
+    fullscreen: process.platform === 'win32' && !isDev,
+    frame: process.platform === 'win32' && !isDev ? false : undefined,
+    kiosk: process.platform === 'win32' && !isDev,
+    alwaysOnTop: process.platform === 'win32' && !isDev
   });
 
   // Load the board view
@@ -70,8 +72,8 @@ function createBoardWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    if (process.platform === 'win32') {
-      // Windows'ta odak ve tam ekranı pekiştir
+    if (process.platform === 'win32' && !isDev) {
+      // Windows'ta üretimde tam ekranı pekiştir
       mainWindow.setFullScreen(true);
       mainWindow.setAlwaysOnTop(true, 'screen-saver');
       mainWindow.focus();
@@ -84,6 +86,7 @@ function createBoardWindow() {
 }
 
 function createAdminWindow() {
+  const isDev = process.env.NODE_ENV === 'development';
   adminWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -98,9 +101,9 @@ function createAdminWindow() {
   });
 
   // Load the admin panel
-  if (process.env.NODE_ENV === 'development') {
+  if (isDev) {
     adminWindow.loadURL('http://localhost:5173/admin');
-    adminWindow.webContents.openDevTools();
+    // Geliştirmede devtools'u artık otomatik açmıyoruz
   } else {
     adminWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'admin' });
   }
