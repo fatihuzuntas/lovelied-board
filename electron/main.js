@@ -12,6 +12,26 @@ import MigrationManager from './migration.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Klasör kopyalama fonksiyonu
+function copyFolderRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyFolderRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 let mainWindow; // Board görünümü
 let adminWindow; // Admin paneli
 let dbManager;
@@ -37,7 +57,7 @@ function createBoardWindow() {
 
   // Load the board view
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5179/');
+    mainWindow.loadURL('http://localhost:5173/');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
@@ -67,7 +87,7 @@ function createAdminWindow() {
 
   // Load the admin panel
   if (process.env.NODE_ENV === 'development') {
-    adminWindow.loadURL('http://localhost:5179/admin');
+    adminWindow.loadURL('http://localhost:5173/admin');
     adminWindow.webContents.openDevTools();
   } else {
     adminWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'admin' });
@@ -225,6 +245,37 @@ function setupIpcHandlers() {
     }
   });
 
+  // Medya dosyasını data URL olarak çözümle (önizleme için)
+  ipcMain.handle('media:get-data-url', async (event, relativeUrl) => {
+    try {
+      const pathModule = path; // isim çakışmalarını önlemek için alias
+      const fsModule = fs;
+      const filename = pathModule.basename(relativeUrl);
+      const mediaDir = pathModule.join(pathModule.dirname(dbManager.dbPath), 'media');
+      const filePath = pathModule.join(mediaDir, filename);
+
+      const buffer = fsModule.readFileSync(filePath);
+      const ext = pathModule.extname(filename).toLowerCase().replace('.', '');
+      const mimeMap = {
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        webp: 'image/webp',
+        gif: 'image/gif',
+        svg: 'image/svg+xml',
+        mp4: 'video/mp4',
+        webm: 'video/webm',
+        ogg: 'video/ogg'
+      };
+      const mime = mimeMap[ext] || 'application/octet-stream';
+      const base64 = buffer.toString('base64');
+      return { success: true, dataUrl: `data:${mime};base64,${base64}` };
+    } catch (error) {
+      console.error('Medya data URL oluşturma hatası:', error);
+      throw error;
+    }
+  });
+
   // Güncelleme işlemleri
   ipcMain.handle('updater:check-for-updates', async () => {
     try {
@@ -277,6 +328,126 @@ function setupIpcHandlers() {
       return { success: true };
     } catch (error) {
       console.error('Metadata kaydetme hatası:', error);
+      throw error;
+    }
+  });
+
+  // Dialog handler'ları
+  ipcMain.handle('dialog:show-save-dialog', async (event, options) => {
+    try {
+      const result = await dialog.showSaveDialog(mainWindow, options);
+      return result;
+    } catch (error) {
+      console.error('Dialog hatası:', error);
+      return { canceled: true };
+    }
+  });
+
+  ipcMain.handle('dialog:show-open-dialog', async (event, options) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, options);
+      return result;
+    } catch (error) {
+      console.error('Dialog hatası:', error);
+      return { canceled: true };
+    }
+  });
+
+  // Belirli bir yola yedekleme
+  ipcMain.handle('db:backup-to-path', async (event, filePath) => {
+    try {
+      const data = await dbManager.getBoardData();
+      const backupData = {
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        data: data
+      };
+      
+      fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
+      return { success: true, path: filePath };
+    } catch (error) {
+      console.error('Yedekleme hatası:', error);
+      throw error;
+    }
+  });
+
+  // Klasöre yedekleme (veriler + resimler)
+  ipcMain.handle('db:backup-to-folder', async (event, folderPath) => {
+    try {
+      // Klasör oluştur
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+
+      // Verileri JSON olarak kaydet
+      const data = await dbManager.getBoardData();
+      const backupData = {
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        data: data
+      };
+      
+      const dataFilePath = path.join(folderPath, 'board-data.json');
+      fs.writeFileSync(dataFilePath, JSON.stringify(backupData, null, 2));
+
+      // Medya klasörünü kopyala - Database manager'dan doğru yolu al
+      const dataRoot = dbManager.getDefaultDataRoot();
+      const mediaPath = path.join(dataRoot, 'user-data', 'media');
+      const backupMediaPath = path.join(folderPath, 'media');
+
+      console.log('Data root:', dataRoot);
+      console.log('Media path:', mediaPath);
+      console.log('Media exists:', fs.existsSync(mediaPath));
+      console.log('Backup media path:', backupMediaPath);
+
+      if (fs.existsSync(mediaPath)) {
+        // Media klasörünü recursive olarak kopyala
+        copyFolderRecursive(mediaPath, backupMediaPath);
+        console.log('Media folder copied successfully');
+      } else {
+        console.log('Media folder not found, skipping copy');
+      }
+
+      return { success: true, path: folderPath };
+    } catch (error) {
+      console.error('Klasör yedekleme hatası:', error);
+      throw error;
+    }
+  });
+
+  // Klasörden geri yükleme
+  ipcMain.handle('db:restore-from-folder', async (event, folderPath) => {
+    try {
+      const dataFilePath = path.join(folderPath, 'board-data.json');
+      const mediaPath = path.join(folderPath, 'media');
+      
+      // JSON dosyasını oku
+      if (!fs.existsSync(dataFilePath)) {
+        throw new Error('board-data.json dosyası bulunamadı');
+      }
+      
+      const backupData = JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));
+      
+      // Verileri geri yükle
+      await dbManager.saveBoardData(backupData.data);
+      
+      // Media klasörünü kopyala (varsa)
+      if (fs.existsSync(mediaPath)) {
+        const dataRoot = dbManager.getDefaultDataRoot();
+        const targetMediaPath = path.join(dataRoot, 'user-data', 'media');
+        
+        // Hedef media klasörünü temizle ve yeniden kopyala
+        if (fs.existsSync(targetMediaPath)) {
+          fs.rmSync(targetMediaPath, { recursive: true, force: true });
+        }
+        
+        copyFolderRecursive(mediaPath, targetMediaPath);
+        console.log('Media klasörü geri yüklendi:', targetMediaPath);
+      }
+      
+      return { success: true, path: folderPath };
+    } catch (error) {
+      console.error('Klasör geri yükleme hatası:', error);
       throw error;
     }
   });

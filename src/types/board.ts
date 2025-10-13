@@ -11,6 +11,7 @@ export interface Slide {
     end: string;
   };
   priority?: number;
+  mediaOnly?: boolean;
 }
 
 export interface DutyInfo {

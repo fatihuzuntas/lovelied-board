@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const BirthdayManager = () => {
@@ -18,10 +18,6 @@ export const BirthdayManager = () => {
     type: 'student',
   });
 
-  const handleSave = async () => {
-    await updateBirthdays(birthdays);
-    toast.success('Doğum günü listesi kaydedildi');
-  };
 
   // Açılışta güncel veriyi çek
   useEffect(() => {
@@ -31,29 +27,39 @@ export const BirthdayManager = () => {
     })();
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newBirthday.name || !newBirthday.date || !newBirthday.class) {
       toast.error('Lütfen tüm alanları doldurun');
       return;
     }
-    setBirthdays([...birthdays, newBirthday as Birthday]);
+    const updated = [...birthdays, newBirthday as Birthday];
+    setBirthdays(updated);
     setNewBirthday({ name: '', date: '', class: '', type: 'student' });
-    toast.success('Doğum günü eklendi');
+    try {
+      await updateBirthdays(updated);
+      toast.success('Doğum günü eklendi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Doğum günü kaydedilemedi');
+    }
   };
 
-  const handleDelete = (index: number) => {
-    setBirthdays(birthdays.filter((_, i) => i !== index));
-    toast.success('Doğum günü silindi');
+  const handleDelete = async (index: number) => {
+    const updated = birthdays.filter((_, i) => i !== index);
+    setBirthdays(updated);
+    try {
+      await updateBirthdays(updated);
+      toast.success('Doğum günü silindi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Doğum günü kaydedilemedi');
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Doğum Günü Yönetimi</h2>
-        <Button onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Kaydet
-        </Button>
       </div>
 
       <Card>

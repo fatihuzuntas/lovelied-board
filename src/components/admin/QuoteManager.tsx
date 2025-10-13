@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const QuoteManager = () => {
@@ -18,10 +18,6 @@ export const QuoteManager = () => {
     source: '',
   });
 
-  const handleSave = async () => {
-    await updateQuotes(quotes);
-    toast.success('Sözler kaydedildi');
-  };
 
   // Açılışta güncel veriyi çek
   useEffect(() => {
@@ -31,7 +27,7 @@ export const QuoteManager = () => {
     })();
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newQuote.text?.trim()) {
       toast.error('Lütfen metin giriniz');
       return;
@@ -44,14 +40,28 @@ export const QuoteManager = () => {
       source: newQuote.source || undefined,
     };
 
-    setQuotes([...quotes, quote]);
+    const updated = [...quotes, quote];
+    setQuotes(updated);
     setNewQuote({ type: 'quote', text: '', source: '' });
-    toast.success('Söz eklendi');
+    try {
+      await updateQuotes(updated);
+      toast.success('Söz eklendi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Söz kaydedilemedi');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setQuotes(quotes.filter(q => q.id !== id));
-    toast.success('Söz silindi');
+  const handleDelete = async (id: string) => {
+    const updated = quotes.filter(q => q.id !== id);
+    setQuotes(updated);
+    try {
+      await updateQuotes(updated);
+      toast.success('Söz silindi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Söz kaydedilemedi');
+    }
   };
 
   const getTypeLabel = (type: string) => {
@@ -67,10 +77,6 @@ export const QuoteManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Ayet, Hadis ve Özlü Söz Yönetimi</h2>
-        <Button onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Kaydet
-        </Button>
       </div>
 
       <Card>

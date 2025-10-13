@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const colorfulIcons = [
@@ -27,10 +27,6 @@ export const CountdownManager = () => {
   });
   const [showIconPicker, setShowIconPicker] = useState(false);
 
-  const handleSave = () => {
-    updateCountdowns(countdowns);
-    toast.success('Geri sayımlar kaydedildi');
-  };
 
   // Açılışta güncel veriyi çek
   useEffect(() => {
@@ -40,7 +36,7 @@ export const CountdownManager = () => {
     })();
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newCountdown.name || !newCountdown.date) {
       toast.error('Lütfen isim ve tarih alanlarını doldurun');
       return;
@@ -52,24 +48,34 @@ export const CountdownManager = () => {
       type: newCountdown.type as 'exam' | 'event' | 'holiday',
       icon: newCountdown.icon,
     };
-    setCountdowns([...countdowns, countdown]);
+    const updated = [...countdowns, countdown];
+    setCountdowns(updated);
     setNewCountdown({ name: '', date: '', type: 'event', icon: '📅' });
-    toast.success('Geri sayım eklendi');
+    try {
+      await updateCountdowns(updated);
+      toast.success('Geri sayım eklendi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Geri sayım kaydedilemedi');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setCountdowns(countdowns.filter(c => c.id !== id));
-    toast.success('Geri sayım silindi');
+  const handleDelete = async (id: string) => {
+    const updated = countdowns.filter(c => c.id !== id);
+    setCountdowns(updated);
+    try {
+      await updateCountdowns(updated);
+      toast.success('Geri sayım silindi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Geri sayım kaydedilemedi');
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Geri Sayım Yönetimi</h2>
-        <Button onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Kaydet
-        </Button>
       </div>
 
       <Card>

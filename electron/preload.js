@@ -33,5 +33,12 @@ contextBridge.exposeInMainWorld('electron', {
   }
 });
 
+// Process bilgilerini de expose et (Electron tespiti için)
+contextBridge.exposeInMainWorld('process', {
+  versions: {
+    electron: process.versions.electron
+  }
+});
+
 // Console'da debug bilgisi
 console.log('🔌 Preload script yüklendi');

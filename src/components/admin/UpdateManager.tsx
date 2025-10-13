@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import * as path from 'path';
+import * as fs from 'fs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -25,7 +27,8 @@ import {
   onUpdateDownloaded,
   removeUpdateListeners,
   backupDatabase,
-  restoreDatabase
+  restoreDatabase,
+  isElectron
 } from '@/lib/storage';
 
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
@@ -90,6 +93,18 @@ export const UpdateManager = () => {
   };
 
   const handleCheckForUpdates = async () => {
+    // Electron tespiti için debug (sadece development'ta)
+    const electronCheck = isElectron();
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 UpdateManager - Electron Check:', electronCheck);
+    }
+    
+    // Web ortamında güncelleme kontrolü yapma
+    if (!electronCheck) {
+      toast.info('Güncelleme kontrolü sadece masaüstü uygulamasında mevcuttur');
+      return;
+    }
+
     try {
       setUpdateStatus('checking');
       setUpdateError(null);
@@ -113,6 +128,11 @@ export const UpdateManager = () => {
   };
 
   const handleDownloadUpdate = async () => {
+    if (!isElectron()) {
+      toast.info('Güncelleme indirme sadece masaüstü uygulamasında mevcuttur');
+      return;
+    }
+
     try {
       setUpdateStatus('downloading');
       setUpdateError(null);
@@ -127,6 +147,11 @@ export const UpdateManager = () => {
   };
 
   const handleInstallUpdate = async () => {
+    if (!isElectron()) {
+      toast.info('Güncelleme kurulum sadece masaüstü uygulamasında mevcuttur');
+      return;
+    }
+
     try {
       await installUpdate();
     } catch (error) {
@@ -137,10 +162,35 @@ export const UpdateManager = () => {
   };
 
   const handleBackup = async () => {
+    if (!isElectron()) {
+      toast.info('Yedekleme sadece masaüstü uygulamasında mevcuttur. Web ortamında veriler IndexedDB\'de saklanır.');
+      return;
+    }
+
     try {
       setIsBackingUp(true);
-      const backupPath = await backupDatabase();
-      toast.success(`Yedek alındı: ${backupPath}`);
+      
+      // Klasör seçimi için Electron API'sini kullan
+      const result = await window.electron.ipcRenderer.invoke('dialog:show-save-dialog', {
+        title: 'Yedekleme Konumu Seçin',
+        defaultPath: 'lovelied-board-backup',
+        properties: ['createDirectory'],
+        filters: [
+          { name: 'Tüm Dosyalar', extensions: ['*'] }
+        ]
+      });
+      
+      if (!result.canceled && result.filePath) {
+        // Seçilen klasöre yedekle (veriler + resimler)
+        try {
+          await window.electron.ipcRenderer.invoke('db:backup-to-folder', result.filePath);
+          toast.success(`Yedekleme tamamlandı: ${result.filePath}`);
+        } catch (error) {
+          // Fallback: Mevcut backup handler'ını kullan
+          const backupPath = await window.electron.ipcRenderer.invoke('db:backup');
+          toast.success(`Yedek alındı: ${backupPath}`);
+        }
+      }
     } catch (error) {
       console.error('Backup hatası:', error);
       toast.error('Yedek alınamadı');
@@ -150,28 +200,43 @@ export const UpdateManager = () => {
   };
 
   const handleRestore = async () => {
-    // File input ile backup dosyası seç
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.db';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+    if (!isElectron()) {
+      toast.info('Yedek geri yükleme sadece masaüstü uygulamasında mevcuttur. Web ortamında veriler IndexedDB\'de saklanır.');
+      return;
+    }
 
-      try {
-        setIsRestoring(true);
-        const oldBackupPath = await restoreDatabase(file.path);
-        toast.success(`Yedek geri yüklendi. Eski yedek: ${oldBackupPath}`);
+    try {
+      setIsRestoring(true);
+      
+      // Klasör seçimi için Electron API'sini kullan
+      const result = await window.electron.ipcRenderer.invoke('dialog:show-open-dialog', {
+        title: 'Yedekleme Klasörü Seçin',
+        properties: ['openDirectory'],
+        buttonLabel: 'Klasör Seç'
+      });
+      
+      if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+        const backupFolder = result.filePaths[0];
+        const dataFile = path.join(backupFolder, 'board-data.json');
+        
+        // JSON dosyasının varlığını kontrol et
+        if (!fs.existsSync(dataFile)) {
+          toast.error('Seçilen klasörde board-data.json dosyası bulunamadı');
+          return;
+        }
+        
+        // Yedekten geri yükle
+        await window.electron.ipcRenderer.invoke('db:restore-from-folder', backupFolder);
+        toast.success('Yedek başarıyla geri yüklendi');
         // Sayfayı yenile
         window.location.reload();
-      } catch (error) {
-        console.error('Restore hatası:', error);
-        toast.error('Yedek geri yüklenemedi');
-      } finally {
-        setIsRestoring(false);
       }
-    };
-    input.click();
+    } catch (error) {
+      console.error('Restore hatası:', error);
+      toast.error('Yedek geri yüklenemedi');
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const getStatusBadge = () => {
@@ -198,14 +263,25 @@ export const UpdateManager = () => {
         <div className="flex gap-2">
           <Button 
             onClick={handleCheckForUpdates} 
-            disabled={updateStatus === 'checking'}
+            disabled={updateStatus === 'checking' || !isElectron()}
             variant="outline"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
-            Güncelleme Kontrol Et
+            {isElectron() ? 'Güncelleme Kontrol Et' : 'Sadece Masaüstü Uygulamasında'}
           </Button>
         </div>
       </div>
+
+      {/* Web Ortamı Bilgilendirmesi */}
+      {!isElectron() && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Web Ortamında:</strong> Güncelleme kontrolü, yedekleme ve geri yükleme işlemleri sadece masaüstü uygulamasında mevcuttur. 
+            Web ortamında verileriniz IndexedDB'de güvenli bir şekilde saklanır.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Mevcut Versiyon */}
       <Card>
@@ -318,12 +394,12 @@ export const UpdateManager = () => {
               </p>
               <Button 
                 onClick={handleBackup} 
-                disabled={isBackingUp}
+                disabled={isBackingUp || !isElectron()}
                 variant="outline"
                 className="w-full"
               >
                 <Database className="mr-2 h-4 w-4" />
-                {isBackingUp ? 'Yedekleniyor...' : 'Yedek Al'}
+                {isBackingUp ? 'Yedekleniyor...' : isElectron() ? 'Yedek Al' : 'Sadece Masaüstü'}
               </Button>
             </div>
 
@@ -337,12 +413,12 @@ export const UpdateManager = () => {
               </p>
               <Button 
                 onClick={handleRestore} 
-                disabled={isRestoring}
+                disabled={isRestoring || !isElectron()}
                 variant="outline"
                 className="w-full"
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isRestoring ? 'animate-spin' : ''}`} />
-                {isRestoring ? 'Geri Yükleniyor...' : 'Yedek Geri Yükle'}
+                {isRestoring ? 'Geri Yükleniyor...' : isElectron() ? 'Yedek Geri Yükle' : 'Sadece Masaüstü'}
               </Button>
             </div>
           </div>
@@ -350,7 +426,7 @@ export const UpdateManager = () => {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Yedekleme işlemi tüm verilerinizi güvenli bir şekilde saklar. 
+              Yedekleme işlemi tüm verilerinizi ve resimlerinizi klasör halinde güvenli bir şekilde saklar. 
               Geri yükleme işlemi önce mevcut verilerinizi yedekler.
             </AlertDescription>
           </Alert>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { resolveMediaUrl } from '@/lib/storage';
 import { Slide } from '@/types/board';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -10,6 +11,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
   const activeSlides = useMemo(() => {
     return slides
@@ -23,36 +25,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
       .sort((a, b) => (a.priority || 999) - (b.priority || 999));
   }, [slides]);
 
-  useEffect(() => {
-    if (activeSlides.length === 0) return;
-
-    const interval = setInterval(() => {
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
-        setIsFlipping(false);
-      }, 300);
-    }, 5000); // 5 saniyede bir
-
-    return () => clearInterval(interval);
-  }, [activeSlides.length]);
-
-  // Slide listesi değiştiğinde taşmayı önle ve baştan başla
-  useEffect(() => {
-    if (currentIndex >= activeSlides.length) {
-      setCurrentIndex(0);
-    }
-  }, [activeSlides.length, currentIndex]);
-
-  // Escape ile kapat
-  useEffect(() => {
-    if (!isExpanded) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsExpanded(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isExpanded]);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   if (activeSlides.length === 0) {
     return (
@@ -72,52 +45,125 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
     currentSlide.media.endsWith('.ogg')
   );
 
+  // Video değiştiğinde süreyi sıfırla
+  useEffect(() => {
+    if (!isVideo) {
+      setVideoDuration(null);
+    }
+  }, [currentIndex, isVideo]);
+
+  // Slayt otomatik geçişi
+  useEffect(() => {
+    if (activeSlides.length === 0 || activeSlides.length === 1) return;
+
+    const goToNext = () => {
+      setIsFlipping(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => {
+          const next = (prev + 1) % activeSlides.length;
+          return next;
+        });
+        setIsFlipping(false);
+      }, 300);
+    };
+
+    // Video varsa video süresi kadar bekle, yoksa 6 saniye
+    const slideDuration = isVideo && videoDuration ? videoDuration * 1000 : 6000;
+    
+    const timer = setTimeout(() => {
+      goToNext();
+    }, slideDuration);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [activeSlides.length, currentIndex, isVideo, videoDuration]);
+
+  // Slide listesi değiştiğinde taşmayı önle ve baştan başla
+  useEffect(() => {
+    if (currentIndex >= activeSlides.length) {
+      setCurrentIndex(0);
+    }
+  }, [activeSlides.length, currentIndex]);
+
+  // Escape ile kapat
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isExpanded]);
+
+  const [resolvedMedia, setResolvedMedia] = useState<string | undefined>(currentSlide.media);
+
+  useEffect(() => {
+    (async () => {
+      const r = await resolveMediaUrl(currentSlide.media);
+      setResolvedMedia(r);
+    })();
+  }, [currentSlide.media]);
+
   const sliderBody = (
     <Card onClick={() => setIsExpanded(true)} className={`overflow-hidden shadow-xl border-2 h-full ${isFlipping ? 'animate-flip' : ''} cursor-zoom-in`}>
       <CardContent className="p-0 h-full relative flex flex-col">
         {/* Background Media */}
-        {currentSlide.media && (
-          isVideo ? (
-            <video
-              src={currentSlide.media}
-              className="absolute inset-0 w-full h-full object-cover"
-              autoPlay
-              loop
-              muted={!isExpanded}
-              playsInline
-            />
-          ) : (
-            <img
-              src={currentSlide.media}
-              alt={currentSlide.title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )
-        )}
-        
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        
-        {/* Content at bottom */}
-        <div className="relative z-10 mt-auto p-8 pb-16">
-          <div className="flex items-center gap-2 mb-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              currentSlide.type === 'news' 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-secondary text-secondary-foreground'
-            }`}>
-              {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
-            </span>
-          </div>
-          <h2 className="text-5xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
-            {currentSlide.title}
-          </h2>
-          <p className="text-2xl text-white/95 leading-relaxed drop-shadow-md max-w-4xl">
-            {currentSlide.body}
-          </p>
+        <div className="absolute inset-0 bg-white flex items-center justify-center">
+          {resolvedMedia && (
+            isVideo ? (
+              <video
+                key={resolvedMedia}
+                src={resolvedMedia}
+                className="w-full h-full object-contain"
+                autoPlay
+                controls={false}
+                ref={videoRef}
+                playsInline
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    setVideoDuration(videoRef.current.duration);
+                  }
+                }}
+              />
+            ) : (
+              <img
+                src={resolvedMedia}
+                alt={currentSlide.title}
+                className="w-full h-full object-contain"
+              />
+            )
+          )}
         </div>
         
+        {/* Overlay gradient */}
+        {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        )}
+        
+       {/* Content at bottom */}
+       {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+       <div className="relative z-10 mt-auto p-8 pb-16">
+         <div className="flex items-center gap-2 mb-3">
+           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+             currentSlide.type === 'news' 
+               ? 'bg-primary text-primary-foreground' 
+               : 'bg-secondary text-secondary-foreground'
+           }`}>
+             {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
+           </span>
+         </div>
+         <h2 className="text-5xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
+           {currentSlide.title}
+         </h2>
+         <p className="text-2xl text-white/95 leading-relaxed drop-shadow-md max-w-4xl">
+           {currentSlide.body}
+         </p>
+       </div>
+       )}
+        
         {/* Progress indicator at bottom */}
+        {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
         <div className="relative z-10 px-8 pb-6">
           <div className="flex gap-2">
             {activeSlides.map((_, idx) => (
@@ -130,6 +176,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
             ))}
           </div>
         </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -148,50 +195,55 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
           <div className="absolute inset-0 cursor-zoom-out">
             <Card className={`overflow-hidden shadow-2xl border-2 h-full ${isFlipping ? 'animate-flip' : ''}`}>
               <CardContent className="p-0 h-full relative flex flex-col">
-                {currentSlide.media && (
-                  isVideo ? (
-                    <video
-                      src={currentSlide.media}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={currentSlide.media}
-                      alt={currentSlide.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className="relative z-10 mt-auto p-10 pb-20">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      currentSlide.type === 'news'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground'
-                    }`}>
-                      {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
-                    </span>
-                  </div>
-                  <h2 className="text-6xl font-bold text-white mb-4 leading-tight drop-shadow-lg">{currentSlide.title}</h2>
-                  <p className="text-3xl text-white/95 leading-relaxed drop-shadow-md max-w-5xl">{currentSlide.body}</p>
-                </div>
-                <div className="relative z-10 px-10 pb-8">
-                  <div className="flex gap-2">
-                    {activeSlides.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-2 rounded-full flex-1 transition-colors ${
-                          idx === currentIndex ? 'bg-white' : 'bg-white/30'
-                        }`}
+                <div className="absolute inset-0 bg-white flex items-center justify-center">
+                  {resolvedMedia && (
+                    isVideo ? (
+                      <video
+                        src={resolvedMedia}
+                        className="w-full h-full object-contain"
+                        autoPlay
+                        loop
+                        playsInline
                       />
-                    ))}
-                  </div>
+                    ) : (
+                      <img
+                        src={resolvedMedia}
+                        alt={currentSlide.title}
+                        className="w-full h-full object-contain"
+                      />
+                    )
+                  )}
                 </div>
+                {currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                    <div className="relative z-10 mt-auto p-10 pb-20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          currentSlide.type === 'news'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground'
+                        }`}>
+                          {currentSlide.type === 'news' ? '📰 HABER' : '📢 DUYURU'}
+                        </span>
+                      </div>
+                      <h2 className="text-6xl font-bold text-white mb-4 leading-tight drop-shadow-lg">{currentSlide.title}</h2>
+                      <p className="text-3xl text-white/95 leading-relaxed drop-shadow-md max-w-5xl">{currentSlide.body}</p>
+                    </div>
+                    <div className="relative z-10 px-10 pb-8">
+                      <div className="flex gap-2">
+                        {activeSlides.map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`h-2 rounded-full flex-1 transition-colors ${
+                              idx === currentIndex ? 'bg-white' : 'bg-white/30'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

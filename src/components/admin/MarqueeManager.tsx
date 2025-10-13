@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Plus, Trash2, Edit, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarqueeItem } from '@/types/board';
 
@@ -18,10 +18,6 @@ export const MarqueeManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ text: '', priority: 'normal' as 'normal' | 'urgent' | 'critical' });
 
-  const handleSave = async () => {
-    await updateMarqueeTexts(marqueeTexts);
-    toast.success('Kayan yazılar kaydedildi');
-  };
 
   // Açılışta güncel veriyi çek
   useEffect(() => {
@@ -31,7 +27,7 @@ export const MarqueeManager = () => {
     })();
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newMarquee.text.trim()) {
       toast.error('Lütfen bir metin girin');
       return;
@@ -41,9 +37,16 @@ export const MarqueeManager = () => {
       text: newMarquee.text,
       priority: newMarquee.priority,
     };
-    setMarqueeTexts([...marqueeTexts, newItem]);
+    const updated = [...marqueeTexts, newItem];
+    setMarqueeTexts(updated);
     setNewMarquee({ text: '', priority: 'normal' });
-    toast.success('Kayan yazı eklendi');
+    try {
+      await updateMarqueeTexts(updated);
+      toast.success('Kayan yazı eklendi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Kayan yazı kaydedilemedi');
+    }
   };
 
   const handleEdit = (item: MarqueeItem) => {
@@ -51,28 +54,38 @@ export const MarqueeManager = () => {
     setEditForm({ text: item.text, priority: item.priority });
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editingId) return;
-    setMarqueeTexts(marqueeTexts.map(m => 
+    const updated = marqueeTexts.map(m => 
       m.id === editingId ? { ...m, text: editForm.text, priority: editForm.priority } : m
-    ));
+    );
+    setMarqueeTexts(updated);
     setEditingId(null);
-    toast.success('Kayan yazı güncellendi');
+    try {
+      await updateMarqueeTexts(updated);
+      toast.success('Kayan yazı güncellendi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Kayan yazı kaydedilemedi');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setMarqueeTexts(marqueeTexts.filter(m => m.id !== id));
-    toast.success('Kayan yazı silindi');
+  const handleDelete = async (id: string) => {
+    const updated = marqueeTexts.filter(m => m.id !== id);
+    setMarqueeTexts(updated);
+    try {
+      await updateMarqueeTexts(updated);
+      toast.success('Kayan yazı silindi ve kaydedildi');
+    } catch (error) {
+      console.error('Kaydetme hatası:', error);
+      toast.error('Kayan yazı kaydedilemedi');
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Kayan Yazı Yönetimi</h2>
-        <Button onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Kaydet
-        </Button>
       </div>
 
       <Card>
@@ -153,7 +166,7 @@ export const MarqueeManager = () => {
                       </Select>
                       <Button size="sm" onClick={handleUpdate}>
                         <Check className="h-4 w-4 mr-2" />
-                        Kaydet
+                        Güncelle
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
                         <X className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadBoardData, saveBoardData } from '@/lib/storage';
+import { loadBoardData, saveBoardData, isElectron } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -47,6 +47,7 @@ export const SettingsManager = () => {
       reader.readAsDataURL(file);
     }
   };
+
 
   if (loading) {
     return (
@@ -141,7 +142,7 @@ export const SettingsManager = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Veri Depolama:</span>
-              <span className="font-medium">LocalStorage</span>
+              <span className="font-medium">{isElectron() ? 'SQLite Veritabanı' : 'IndexedDB'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Versiyon:</span>
@@ -150,6 +151,7 @@ export const SettingsManager = () => {
           </div>
         </CardContent>
       </Card>
+
     </div>
   );
 };

@@ -14,6 +14,11 @@ interface ElectronAPI {
 // Window interface extension
 interface Window {
   electron?: ElectronAPI;
+  process?: {
+    versions?: {
+      electron?: string;
+    };
+  };
 }
 
 // IPC Channel Types

@@ -163,7 +163,7 @@ let lastCacheTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 dakika
 
 // Helper function to check if we're in Electron
-const isElectron = (): boolean => {
+export const isElectron = (): boolean => {
   return !!(window.electron && window.electron.ipcRenderer);
 };
 
@@ -248,6 +248,21 @@ export const uploadMedia = async (dataUrl: string, suggestedName?: string): Prom
     console.error('Medya yükleme hatası:', error);
     // Fallback olarak dataUrl'i döndür
     return dataUrl;
+  }
+};
+
+// Medya URL normalize: Electron'da /user-data/media/... yolunu data URL'e çevir
+export const resolveMediaUrl = async (url?: string): Promise<string | undefined> => {
+  if (!url) return undefined;
+  try {
+    if (isElectron() && url.startsWith('/user-data/media/')) {
+      const result = await window.electron!.ipcRenderer.invoke('media:get-data-url', url);
+      if (result && result.dataUrl) return result.dataUrl as string;
+    }
+    return url;
+  } catch (error) {
+    console.error('Medya URL çözümleme hatası:', error);
+    return url;
   }
 };
 
