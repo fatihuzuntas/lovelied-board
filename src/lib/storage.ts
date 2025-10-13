@@ -182,6 +182,83 @@ const cacheData = (data: BoardData): void => {
   lastCacheTime = Date.now();
 };
 
+// Helper function to safely use localStorage in web environment
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.error('localStorage getItem hatası:', error);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.error('localStorage setItem hatası:', error);
+      throw error;
+    }
+  }
+};
+
+// IndexedDB helpers for web environment to avoid localStorage quota limits
+// Simple key-value store and media store
+type IdbStores = 'kv' | 'media';
+let idbPromise: Promise<IDBDatabase> | null = null;
+
+const getIdb = (): Promise<IDBDatabase> => {
+  if (!idbPromise) {
+    idbPromise = new Promise((resolve, reject) => {
+      try {
+        const openReq = indexedDB.open('lovelied-board', 1);
+        openReq.onupgradeneeded = () => {
+          const db = openReq.result;
+          if (!db.objectStoreNames.contains('kv')) {
+            db.createObjectStore('kv', { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains('media')) {
+            db.createObjectStore('media', { keyPath: 'id' });
+          }
+        };
+        openReq.onsuccess = () => resolve(openReq.result);
+        openReq.onerror = () => reject(openReq.error);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+  return idbPromise;
+};
+
+const idbGet = async <T = any>(storeName: IdbStores, key: string): Promise<T | undefined> => {
+  const db = await getIdb();
+  return await new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const req = store.get(key);
+    req.onsuccess = () => {
+      const result = req.result;
+      if (!result) return resolve(undefined);
+      if (storeName === 'kv') resolve(result.value as T);
+      else resolve(result.dataUrl as T);
+    };
+    req.onerror = () => reject(req.error);
+  });
+};
+
+const idbSet = async (storeName: IdbStores, key: string, value: any): Promise<void> => {
+  const db = await getIdb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const data = storeName === 'kv' ? { key, value } : { id: key, dataUrl: value };
+    const req = store.put(data);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+};
+
 export const loadBoardData = async (): Promise<BoardData> => {
   try {
     // Electron ortamında IPC kullan
@@ -191,13 +268,42 @@ export const loadBoardData = async (): Promise<BoardData> => {
       return data;
     }
     
-    // Web ortamında cache'den döndür
+    // Web ortamında öncelikle IndexedDB'den yükle, yoksa localStorage fallback
+    try {
+      const idbData = await idbGet<string>('kv', 'lovelied-board-data');
+      if (idbData) {
+        const parsedData = JSON.parse(idbData);
+        cacheData(parsedData);
+        return parsedData;
+      }
+    } catch (e) {
+      console.warn('IndexedDB okuma hatası, localStorage deneniyor:', e);
+    }
+
+    const storedData = safeLocalStorage.getItem('lovelied-board-data');
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        cacheData(parsedData);
+        return parsedData;
+      } catch (parseError) {
+        console.error('Stored data parse hatası:', parseError);
+      }
+    }
+    
+    // Cache'den döndür
     const cached = getCachedData();
     if (cached) {
       return cached;
     }
     
-    // Cache yoksa default data döndür
+    // Cache yoksa default data döndür ve kaydet (IndexedDB)
+    try {
+      await idbSet('kv', 'lovelied-board-data', JSON.stringify(defaultData));
+    } catch (e) {
+      console.warn('IndexedDB yazma hatası, localStorage deneniyor:', e);
+      safeLocalStorage.setItem('lovelied-board-data', JSON.stringify(defaultData));
+    }
     return defaultData;
   } catch (error) {
     console.error('Board data yükleme hatası:', error);
@@ -222,9 +328,17 @@ export const saveBoardData = async (data: BoardData): Promise<void> => {
       return;
     }
     
-    // Web ortamında sadece cache'e kaydet
-    cacheData(data);
-    console.warn('Web ortamında veriler geçici olarak cache\'lendi');
+    // Web ortamında IndexedDB'ye kaydet (quota aşımı olmaması için)
+    try {
+      await idbSet('kv', 'lovelied-board-data', JSON.stringify(data));
+      cacheData(data);
+      console.log('Web ortamında veriler IndexedDB\'ye kaydedildi');
+    } catch (e) {
+      console.warn('IndexedDB yazma hatası, localStorage fallback denenecek:', e);
+      safeLocalStorage.setItem('lovelied-board-data', JSON.stringify(data));
+      cacheData(data);
+      console.log('Web ortamında veriler localStorage\'a kaydedildi (fallback)');
+    }
   } catch (error) {
     console.error('Board data kaydetme hatası:', error);
     
@@ -242,8 +356,17 @@ export const uploadMedia = async (dataUrl: string, suggestedName?: string): Prom
       return result.url;
     }
     
-    // Web ortamında dataUrl'i olduğu gibi döndür
-    return dataUrl;
+    // Web ortamında dataUrl'i IndexedDB'ye kaydet ve referans döndür
+    const mediaId = `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try {
+      await idbSet('media', mediaId, dataUrl);
+      return `idb-media://${mediaId}`;
+    } catch (e) {
+      console.warn('IndexedDB medya yazma hatası, localStorage fallback denenecek:', e);
+      const mediaKey = `lovelied-board-media-${mediaId}`;
+      safeLocalStorage.setItem(mediaKey, dataUrl);
+      return `web-media://${mediaId}`;
+    }
   } catch (error) {
     console.error('Medya yükleme hatası:', error);
     // Fallback olarak dataUrl'i döndür
@@ -259,6 +382,20 @@ export const resolveMediaUrl = async (url?: string): Promise<string | undefined>
       const result = await window.electron!.ipcRenderer.invoke('media:get-data-url', url);
       if (result && result.dataUrl) return result.dataUrl as string;
     }
+    
+    // Web ortamında idb-media:// ve web-media:// referanslarını çözümle
+    if (url.startsWith('idb-media://')) {
+      const mediaId = url.replace('idb-media://', '');
+      const dataUrl = await idbGet<string>('media', mediaId);
+      if (dataUrl) return dataUrl;
+    }
+    if (url.startsWith('web-media://')) {
+      const mediaId = url.replace('web-media://', '');
+      const mediaKey = `lovelied-board-media-${mediaId}`;
+      const dataUrl = safeLocalStorage.getItem(mediaKey);
+      if (dataUrl) return dataUrl;
+    }
+    
     return url;
   } catch (error) {
     console.error('Medya URL çözümleme hatası:', error);
@@ -269,7 +406,22 @@ export const resolveMediaUrl = async (url?: string): Promise<string | undefined>
 // Backup ve Restore işlemleri
 export const backupDatabase = async (): Promise<string> => {
   if (!isElectron()) {
-    throw new Error('Backup işlemi sadece Electron ortamında çalışır');
+    // Web ortamında localStorage'dan backup oluştur
+    try {
+      const data = safeLocalStorage.getItem('lovelied-board-data');
+      if (!data) {
+        throw new Error('Kaydedilmiş veri bulunamadı');
+      }
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupKey = `lovelied-board-backup-${timestamp}`;
+      safeLocalStorage.setItem(backupKey, data);
+      
+      return backupKey; // Web ortamında key döndür
+    } catch (error) {
+      console.error('Web backup hatası:', error);
+      throw error;
+    }
   }
   
   try {
@@ -283,7 +435,34 @@ export const backupDatabase = async (): Promise<string> => {
 
 export const restoreDatabase = async (backupPath: string): Promise<string> => {
   if (!isElectron()) {
-    throw new Error('Restore işlemi sadece Electron ortamında çalışır');
+    // Web ortamında localStorage'dan restore yap
+    try {
+      const backupData = safeLocalStorage.getItem(backupPath);
+      if (!backupData) {
+        throw new Error('Backup verisi bulunamadı');
+      }
+      
+      // Mevcut veriyi yedekle
+      const currentData = safeLocalStorage.getItem('lovelied-board-data');
+      let oldBackupPath = '';
+      if (currentData) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        oldBackupPath = `lovelied-board-backup-before-restore-${timestamp}`;
+        safeLocalStorage.setItem(oldBackupPath, currentData);
+      }
+      
+      // Backup'ı geri yükle
+      safeLocalStorage.setItem('lovelied-board-data', backupData);
+      
+      // Cache'i temizle
+      boardDataCache = null;
+      lastCacheTime = 0;
+      
+      return oldBackupPath;
+    } catch (error) {
+      console.error('Web restore hatası:', error);
+      throw error;
+    }
   }
   
   try {

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 // Yardımcı bileşenler: Electron'da /user-data/media/... için data URL'e çevirir
 const MediaPreview = ({ url, title, onClear }: { url: string; title: string; onClear: () => void }) => {
-  const [resolved, setResolved] = useState<string>(url);
+  const [resolved, setResolved] = useState<string>('');
   useEffect(() => {
     (async () => {
       const r = await resolveMediaUrl(url);
@@ -22,13 +22,17 @@ const MediaPreview = ({ url, title, onClear }: { url: string; title: string; onC
     })();
   }, [url]);
 
-  const isVideo = resolved.startsWith('data:video') || resolved.endsWith('.mp4') || resolved.endsWith('.webm');
+  const isVideo = resolved && (resolved.startsWith('data:video') || resolved.endsWith('.mp4') || resolved.endsWith('.webm'));
   return (
     <div className="relative">
-      {isVideo ? (
-        <video src={resolved} className="w-full h-32 object-cover rounded" controls />
+      {resolved ? (
+        isVideo ? (
+          <video src={resolved} className="w-full h-32 object-cover rounded" controls />
+        ) : (
+          <img src={resolved} alt={title} className="w-full h-32 object-cover rounded" />
+        )
       ) : (
-        <img src={resolved} alt={title} className="w-full h-32 object-cover rounded" />
+        <div className="w-full h-32 bg-muted rounded animate-pulse" />
       )}
       <Button
         size="sm"
@@ -43,14 +47,15 @@ const MediaPreview = ({ url, title, onClear }: { url: string; title: string; onC
 };
 
 const MediaInline = ({ url, alt }: { url: string; alt: string }) => {
-  const [resolved, setResolved] = useState<string>(url);
+  const [resolved, setResolved] = useState<string>('');
   useEffect(() => {
     (async () => {
       const r = await resolveMediaUrl(url);
       if (r) setResolved(r);
     })();
   }, [url]);
-  const isVideo = resolved.startsWith('data:video') || resolved.endsWith('.mp4') || resolved.endsWith('.webm');
+  const isVideo = resolved && (resolved.startsWith('data:video') || resolved.endsWith('.mp4') || resolved.endsWith('.webm'));
+  if (!resolved) return <div className="mt-4 h-32 bg-muted rounded animate-pulse" />;
   return isVideo ? (
     <video src={resolved} className="mt-4 h-32 object-cover rounded" controls />
   ) : (

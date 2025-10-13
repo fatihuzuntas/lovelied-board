@@ -12,6 +12,8 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [bellInfo, setBellInfo] = useState<{ label: string; minutes: number } | null>(null);
+  const [daySchedulesState, setDaySchedulesState] = useState<import('@/types/board').DaySchedule[] | undefined>(undefined);
+  const [bellScheduleState, setBellScheduleState] = useState<import('@/types/board').BellSchedule[] | undefined>(undefined);
 
   const calculateDaysLeft = (dateString: string): number => {
     const targetDate = new Date(dateString);
@@ -41,13 +43,13 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
     }
   };
 
-  const calculateBellTime = () => {
-    const boardData = loadBoardData();
-    if (!boardData || !boardData.daySchedules || boardData.daySchedules.length === 0) {
+  const calculateBellTimeFrom = (
+    daySchedules?: import('@/types/board').DaySchedule[],
+    bellSchedule?: import('@/types/board').BellSchedule[],
+  ) => {
+    if ((!daySchedules || daySchedules.length === 0) && (!bellSchedule || bellSchedule.length === 0)) {
       return null;
     }
-    
-    const { daySchedules } = boardData;
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -60,8 +62,14 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       dayIndex === 5 ? 'friday' : 'all'
     ) as 'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
 
+    // Günlük programı belirle (daySchedules yoksa bellSchedule yedeğini kullan)
+    let scheduleItems: Array<{ type: 'lesson' | 'break'; startTime: string; endTime: string; order: number }> = [];
     const scheduleForDay = daySchedules?.find(d => d.day === dayKey) || daySchedules?.find(d => d.day === 'all');
-    if (!scheduleForDay || !scheduleForDay.schedule || scheduleForDay.schedule.length === 0) {
+    if (scheduleForDay && scheduleForDay.schedule && scheduleForDay.schedule.length > 0) {
+      scheduleItems = scheduleForDay.schedule;
+    } else if (bellSchedule && bellSchedule.length > 0) {
+      scheduleItems = bellSchedule;
+    } else {
       return null;
     }
 
@@ -70,7 +78,7 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       return h * 60 + m;
     };
 
-    const lessons = scheduleForDay.schedule
+    const lessons = scheduleItems
       .filter(s => s.type === 'lesson')
       .sort((a, b) => a.order - b.order)
       .map(s => ({ start: toMinutes(s.startTime), end: toMinutes(s.endTime) }));
@@ -83,8 +91,8 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
         const diff = l.end - currentMinutes;
         const hours = Math.floor(diff / 60);
         const mins = diff % 60;
-        // Dersteyiz: teneffüse kalan dakika
-        return { label: 'Teneffüse', minutes: diff };
+        // Dersteyiz: teneffüs Ziline kalan süre
+        return { label: 'Teneffüs Ziline', minutes: diff };
       }
     }
 
@@ -94,21 +102,48 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       const diff = upcoming.start - currentMinutes;
       const hours = Math.floor(diff / 60);
       const mins = diff % 60;
-      return { label: 'Ders başlamasına', minutes: diff };
+      return { label: 'Ders Ziline', minutes: diff };
     }
 
-    return { label: 'Ders başlamasına', minutes: 0 };
+    return { label: 'Ders Ziline', minutes: 0 };
   };
 
+  const calculateBellTime = () => calculateBellTimeFrom(daySchedulesState, bellScheduleState);
+
   useEffect(() => {
+    let isMounted = true;
+    
+    const load = async () => {
+      try {
+        const data = await loadBoardData();
+        if (!isMounted) return;
+        setDaySchedulesState(data.daySchedules);
+        setBellScheduleState(data.bellSchedule);
+        // Yeni gelen veriye göre anında hesapla (state'e bağımlı olmadan)
+        setBellInfo(calculateBellTimeFrom(data.daySchedules, data.bellSchedule));
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    // İlk yükleme
+    load();
+
+    // Zil bilgisini her 5 sn'de bir güncelle (daha akıcı)
     const bellTimer = setInterval(() => {
-      setBellInfo(calculateBellTime());
-    }, 30000); // Her 30 saniyede bir güncelle
+      if (!isMounted) return;
+      // Güncel state değerlerini kullanarak hesapla
+      setBellInfo(prevInfo => {
+        const newInfo = calculateBellTimeFrom(daySchedulesState, bellScheduleState);
+        return newInfo || prevInfo; // null gelirse eski değeri koru
+      });
+    }, 5000);
 
-    setBellInfo(calculateBellTime());
-
-    return () => clearInterval(bellTimer);
-  }, []);
+    return () => {
+      isMounted = false;
+      clearInterval(bellTimer);
+    };
+  }, [daySchedulesState, bellScheduleState]);
 
   const activeCountdowns = useMemo(() => (
     countdowns
@@ -128,7 +163,7 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [activeCountdowns.length]);
+  }, [activeCountdowns.length, currentIndex]);
 
   if (activeCountdowns.length === 0) return null;
 

@@ -1,7 +1,12 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "lovelied-board",
   "private": true,
   "version": "1.0.1",
+  "description": "Modern, offline çalışan dijital okul panosu sistemi",
+  "author": {
+    "name": "Fatih Uzuntaş",
+    "email": "fatihuzuntas51@gmail.com"
+  },
   "main": "electron/main.js",
   "type": "module",
   "scripts": {

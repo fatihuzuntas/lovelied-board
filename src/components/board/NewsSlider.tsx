@@ -12,6 +12,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
   const [isFlipping, setIsFlipping] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   const activeSlides = useMemo(() => {
     return slides
@@ -38,12 +39,15 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
   }
 
   const currentSlide = activeSlides[currentIndex];
-
-  const isVideo = currentSlide.media && (
-    currentSlide.media.endsWith('.mp4') || 
-    currentSlide.media.endsWith('.webm') || 
-    currentSlide.media.endsWith('.ogg')
-  );
+  
+  // Medya çözümleme ve video tespiti (kullanmadan önce tanımlı olmalı)
+  const [resolvedMedia, setResolvedMedia] = useState<string | undefined>(undefined);
+  const isVideo = useMemo(() => {
+    if (!resolvedMedia) return false;
+    // Data URL veya uzantı üzerinden video kontrolü
+    if (resolvedMedia.startsWith('data:video')) return true;
+    return resolvedMedia.endsWith('.mp4') || resolvedMedia.endsWith('.webm') || resolvedMedia.endsWith('.ogg');
+  }, [resolvedMedia]);
 
   // Video değiştiğinde süreyi sıfırla
   useEffect(() => {
@@ -96,14 +100,49 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [isExpanded]);
 
-  const [resolvedMedia, setResolvedMedia] = useState<string | undefined>(currentSlide.media);
+  // Video otomatik oynatma için kullanıcı etkileşimi
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (!hasUserInteracted) {
+        setHasUserInteracted(true);
+        // Tüm videoları oynatmaya çalış
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.play().catch(() => {
+            // Oynatma hatası görmezden gel
+          });
+        });
+      }
+    };
+
+    // İlk tıklamada video oynatma yetkisi al
+    document.addEventListener('click', handleUserInteraction, { once: true });
+    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    document.addEventListener('keydown', handleUserInteraction, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, [hasUserInteracted]);
 
   useEffect(() => {
+    if (!currentSlide?.media) {
+      setResolvedMedia(undefined);
+      return;
+    }
+    
     (async () => {
-      const r = await resolveMediaUrl(currentSlide.media);
-      setResolvedMedia(r);
+      try {
+        const r = await resolveMediaUrl(currentSlide.media);
+        setResolvedMedia(r);
+      } catch (error) {
+        console.error('Media resolve error:', error);
+        setResolvedMedia(undefined);
+      }
     })();
-  }, [currentSlide.media]);
+  }, [currentSlide?.media]);
 
   const sliderBody = (
     <Card onClick={() => setIsExpanded(true)} className={`overflow-hidden shadow-xl border-2 h-full ${isFlipping ? 'animate-flip' : ''} cursor-zoom-in`}>
@@ -116,20 +155,24 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
                 key={resolvedMedia}
                 src={resolvedMedia}
                 className="w-full h-full object-contain"
-                autoPlay
+                autoPlay={hasUserInteracted}
                 controls={false}
                 ref={videoRef}
                 playsInline
                 onLoadedMetadata={() => {
                   if (videoRef.current) {
                     setVideoDuration(videoRef.current.duration);
+                    // Kullanıcı etkileşimi varsa hemen oynat
+                    if (hasUserInteracted) {
+                      videoRef.current.play().catch(() => {});
+                    }
                   }
                 }}
               />
             ) : (
               <img
                 src={resolvedMedia}
-                alt={currentSlide.title}
+                alt={currentSlide?.title || 'Slayt görseli'}
                 className="w-full h-full object-contain"
               />
             )
@@ -137,12 +180,12 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
         </div>
         
         {/* Overlay gradient */}
-        {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+        {currentSlide && !currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         )}
         
        {/* Content at bottom */}
-       {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+       {currentSlide && !currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
        <div className="relative z-10 mt-auto p-8 pb-16">
          <div className="flex items-center gap-2 mb-3">
            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -163,7 +206,7 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
        )}
         
         {/* Progress indicator at bottom */}
-        {!currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+        {currentSlide && !currentSlide.mediaOnly && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
         <div className="relative z-10 px-8 pb-6">
           <div className="flex gap-2">
             {activeSlides.map((_, idx) => (
@@ -201,20 +244,20 @@ export const NewsSlider = ({ slides }: NewsSliderProps) => {
                       <video
                         src={resolvedMedia}
                         className="w-full h-full object-contain"
-                        autoPlay
+                        autoPlay={hasUserInteracted}
                         loop
                         playsInline
                       />
                     ) : (
                       <img
                         src={resolvedMedia}
-                        alt={currentSlide.title}
+                        alt={currentSlide?.title || 'Slayt görseli'}
                         className="w-full h-full object-contain"
                       />
                     )
                   )}
                 </div>
-                {currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
+                {currentSlide && currentSlide.title && currentSlide.title !== '' && currentSlide.title !== 'Başlıksız' && (
                   <>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                     <div className="relative z-10 mt-auto p-10 pb-20">
