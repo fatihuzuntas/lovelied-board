@@ -331,9 +331,17 @@ function setupIpcHandlers() {
       }
       
       // app-update.yml dosyasının varlığını kontrol et
-      const updateConfigPath = path.join(app.getAppPath(), '..', 'app-update.yml');
+      // Windows'ta resources klasöründe, macOS'ta üst dizinde
+      let updateConfigPath;
+      if (process.platform === 'win32') {
+        updateConfigPath = path.join(app.getAppPath(), 'resources', 'app-update.yml');
+      } else {
+        updateConfigPath = path.join(app.getAppPath(), '..', 'app-update.yml');
+      }
+      
       if (!fs.existsSync(updateConfigPath)) {
         console.log('app-update.yml bulunamadı, güncelleme kontrolü devre dışı');
+        console.log('Aranan konum:', updateConfigPath);
         return {
           success: false,
           error: 'Güncelleme yapılandırması bulunamadı',
