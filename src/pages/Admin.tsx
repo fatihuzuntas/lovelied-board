@@ -164,7 +164,7 @@ const Admin = () => {
         <div className="p-2 border-t bg-muted/30">
           <div className="text-xs text-muted-foreground text-center space-y-0.5">
             <p className="font-semibold text-foreground/70">Digital Board</p>
-            <p className="text-[10px]">v1.0.5</p>
+            <p className="text-[10px]">v1.0.6</p>
           </div>
         </div>
       </div>
