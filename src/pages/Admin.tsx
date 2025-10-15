@@ -161,9 +161,10 @@ const Admin = () => {
         </nav>
 
         {/* Footer */}
-        <div className="p-2 border-t">
-          <div className="text-xs text-muted-foreground text-center">
-            <p className="text-xs">v1.0.1</p>
+        <div className="p-2 border-t bg-muted/30">
+          <div className="text-xs text-muted-foreground text-center space-y-0.5">
+            <p className="font-semibold text-foreground/70">Digital Board</p>
+            <p className="text-[10px]">v1.0.4</p>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { loadBoardData } from '@/lib/storage';
 const Board = () => {
   const [boardData, setBoardData] = useState<BoardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,6 +36,40 @@ const Board = () => {
     };
   }, []);
 
+  // Zoom kontrolü için klavye kısayolları
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl (Windows/Linux) veya Cmd (Mac) kontrolü
+      const isModifierPressed = e.ctrlKey || e.metaKey;
+      
+      if (!isModifierPressed) return;
+
+      // Zoom In: Ctrl/Cmd + ö
+      if (e.key === 'ö' || e.key === 'Ö') {
+        e.preventDefault();
+        setZoom(prev => Math.min(prev + 0.1, 3)); // Max 3x zoom
+      }
+      
+      // Zoom Out: Ctrl/Cmd + ç
+      if (e.key === 'ç' || e.key === 'Ç') {
+        e.preventDefault();
+        setZoom(prev => Math.max(prev - 0.1, 0.5)); // Min 0.5x zoom
+      }
+      
+      // Reset: Ctrl/Cmd + 0
+      if (e.key === '0') {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   if (loading || !boardData) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
@@ -47,54 +82,69 @@ const Board = () => {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <Header config={boardData.config} />
-      
-      <main className="flex-1 overflow-hidden flex gap-3 p-3">
-        {/* Sol ve Orta Sütunlar Grubu */}
-        <div className="flex-1 flex flex-col gap-3">
-          <div className="flex-1 flex gap-3 overflow-hidden">
-            {/* Sol Sütun */}
-            <aside className="w-60 flex-shrink-0 flex flex-col overflow-y-auto">
-              <CountdownBarFlip countdowns={boardData.countdowns} />
-            </aside>
-            
-            {/* Orta Sütun - En Geniş */}
-            <div className="flex-1 overflow-hidden min-w-0">
-              <NewsSlider slides={boardData.slides} />
-            </div>
-          </div>
+    <div className="h-screen bg-background flex items-center justify-center overflow-hidden p-4">
+      <div 
+        className="h-full w-full flex flex-col transition-transform duration-300 ease-in-out"
+        style={{ 
+          transform: `scale(${zoom})`,
+          transformOrigin: 'center center'
+        }}
+      >
+        <div className="h-full flex flex-col overflow-hidden bg-background rounded-lg shadow-xl">
+          <Header config={boardData.config} />
           
-          {/* Kayan Yazı - Sol ve Orta Sütun Altında */}
-          <MarqueeBar texts={boardData.marqueeTexts} />
+          <main className="flex-1 overflow-hidden flex gap-3 p-3">
+            {/* Sol ve Orta Sütunlar Grubu */}
+            <div className="flex-1 flex flex-col gap-3">
+              <div className="flex-1 flex gap-3 overflow-hidden">
+                {/* Sol Sütun */}
+                <aside className="w-60 flex-shrink-0 flex flex-col overflow-y-auto">
+                  <CountdownBarFlip countdowns={boardData.countdowns} />
+                </aside>
+                
+                {/* Orta Sütun - En Geniş */}
+                <div className="flex-1 overflow-hidden min-w-0">
+                  <NewsSlider slides={boardData.slides} />
+                </div>
+              </div>
+              
+              {/* Kayan Yazı - Sol ve Orta Sütun Altında */}
+              <MarqueeBar texts={boardData.marqueeTexts} />
+            </div>
+            
+            {/* Sağ Sütun - Sol ile aynı genişlikte */}
+            <aside className="w-60 flex-shrink-0 flex flex-col gap-2 overflow-hidden min-h-0">
+              {(() => {
+                const today = new Date();
+                const hasBirthdayToday = boardData.birthdays.some(b => {
+                  const parts = b.date.split('-');
+                  if (parts.length !== 3) return false;
+                  const y = parseInt(parts[0], 10);
+                  const m = parseInt(parts[1], 10);
+                  const d = parseInt(parts[2], 10);
+                  if (Number.isNaN(m) || Number.isNaN(d)) return false;
+                  const bd = new Date(y, m - 1, d);
+                  return today.getMonth() === bd.getMonth() && today.getDate() === bd.getDate();
+                });
+                return (
+                  <>
+                    <DutySectionFlip duty={boardData.duty} />
+                    <BirthdaySectionFlip birthdays={boardData.birthdays} />
+                    <div className="flex-1 min-h-0">
+                      <QuoteSection quotes={boardData.quotes} compact={hasBirthdayToday} />
+                    </div>
+                  </>
+                );
+              })()}
+            </aside>
+          </main>
         </div>
         
-        {/* Sağ Sütun - Sol ile aynı genişlikte */}
-        <aside className="w-60 flex-shrink-0 flex flex-col gap-2 overflow-hidden min-h-0">
-          {(() => {
-            const today = new Date();
-            const hasBirthdayToday = boardData.birthdays.some(b => {
-              const parts = b.date.split('-');
-              if (parts.length !== 3) return false;
-              const y = parseInt(parts[0], 10);
-              const m = parseInt(parts[1], 10);
-              const d = parseInt(parts[2], 10);
-              if (Number.isNaN(m) || Number.isNaN(d)) return false;
-              const bd = new Date(y, m - 1, d);
-              return today.getMonth() === bd.getMonth() && today.getDate() === bd.getDate();
-            });
-            return (
-              <>
-                <DutySectionFlip duty={boardData.duty} />
-                <BirthdaySectionFlip birthdays={boardData.birthdays} />
-                <div className="flex-1 min-h-0">
-                  <QuoteSection quotes={boardData.quotes} compact={hasBirthdayToday} />
-                </div>
-              </>
-            );
-          })()}
-        </aside>
-      </main>
+        {/* Zoom Göstergesi */}
+        <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-lg text-xs font-medium opacity-0 hover:opacity-100 transition-opacity">
+          Zoom: {(zoom * 100).toFixed(0)}%
+        </div>
+      </div>
     </div>
   );
 };

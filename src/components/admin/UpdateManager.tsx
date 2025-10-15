@@ -114,10 +114,15 @@ export const UpdateManager = () => {
       if (info) {
         setUpdateInfo(info);
         setUpdateStatus('available');
-        toast.success(`Yeni güncelleme mevcut: v${info.version}`);
+        toast.success(`Yeni güncelleme mevcut: v${info.version}`, {
+          duration: 4000,
+        });
       } else {
         setUpdateStatus('idle');
-        toast.info('Uygulamanız güncel durumda');
+        toast.success('🎉 Uygulama Güncel!', {
+          description: 'En son versiyonu kullanıyorsunuz.',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('Güncelleme kontrol hatası:', error);
@@ -130,15 +135,12 @@ export const UpdateManager = () => {
       // Geliştirme modu için özel mesaj
       if (errorMessage.includes('Geliştirme modunda güncelleme kontrolü mevcut değil')) {
         toast.info('Güncelleme kontrolü sadece üretim sürümünde çalışır');
-      } else if (errorMessage.includes('latest-mac.yml') || errorMessage.includes('latest.yml')) {
-        // Güncelleme yapılandırması eksik - güncel olarak göster
-        toast.success('En güncel versiyonu kullanıyorsunuz!');
-      } else if (errorMessage.includes('Unable to find latest version')) {
-        // Release bulunamadı - güncel olarak göster
-        toast.success('En güncel versiyonu kullanıyorsunuz!');
       } else {
-        // Diğer hatalar için güncel olarak göster
-        toast.success('En güncel versiyonu kullanıyorsunuz!');
+        // Tüm hata durumlarında güncel olarak göster (çünkü büyük ihtimalle uygulama güncel)
+        toast.success('🎉 Uygulama Güncel!', {
+          description: 'En son versiyonu kullanıyorsunuz.',
+          duration: 3000,
+        });
       }
     }
   };

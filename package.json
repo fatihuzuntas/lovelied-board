@@ -1,5 +1,5 @@
 {
-  "name": "lovelied-board",
+  "name": "digital-board",
   "private": true,
   "version": "1.0.4",
   "description": "Modern, offline çalışan dijital okul panosu sistemi",
@@ -27,8 +27,8 @@
     "electron:dist:all": "npm run build && electron-builder -mwl"
   },
   "build": {
-    "appId": "com.loveliedboard.app",
-    "productName": "Lovelied Board",
+    "appId": "com.digitalboard.app",
+    "productName": "Digital Board",
     "publish": [
       {
         "provider": "github",
@@ -88,7 +88,7 @@
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "shortcutName": "Lovelied Board",
+      "shortcutName": "Digital Board",
       "menuCategory": true,
       "artifactName": "${productName} Setup ${version}.${ext}",
       "uninstallDisplayName": "${productName}",

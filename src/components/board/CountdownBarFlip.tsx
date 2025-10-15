@@ -53,35 +53,54 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    const dayIndex = now.getDay(); // 0: Pazar ... 6: Cumartesi
-    const dayKey = (
-      dayIndex === 1 ? 'monday' :
-      dayIndex === 2 ? 'tuesday' :
-      dayIndex === 3 ? 'wednesday' :
-      dayIndex === 4 ? 'thursday' :
-      dayIndex === 5 ? 'friday' : 'all'
-    ) as 'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
-
-    // Günlük programı belirle (daySchedules yoksa bellSchedule yedeğini kullan)
-    let scheduleItems: Array<{ type: 'lesson' | 'break'; startTime: string; endTime: string; order: number }> = [];
-    const scheduleForDay = daySchedules?.find(d => d.day === dayKey) || daySchedules?.find(d => d.day === 'all');
-    if (scheduleForDay && scheduleForDay.schedule && scheduleForDay.schedule.length > 0) {
-      scheduleItems = scheduleForDay.schedule;
-    } else if (bellSchedule && bellSchedule.length > 0) {
-      scheduleItems = bellSchedule;
-    } else {
-      return null;
-    }
-
     const toMinutes = (t: string) => {
       const [h, m] = t.split(':').map(n => parseInt(n, 10));
       return h * 60 + m;
     };
 
-    const lessons = scheduleItems
-      .filter(s => s.type === 'lesson')
-      .sort((a, b) => a.order - b.order)
-      .map(s => ({ start: toMinutes(s.startTime), end: toMinutes(s.endTime) }));
+    const getDayKey = (dayIndex: number) => {
+      return (
+        dayIndex === 1 ? 'monday' :
+        dayIndex === 2 ? 'tuesday' :
+        dayIndex === 3 ? 'wednesday' :
+        dayIndex === 4 ? 'thursday' :
+        dayIndex === 5 ? 'friday' : 'all'
+      ) as 'all' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+    };
+
+    const getDayName = (dayKey: string) => {
+      switch (dayKey) {
+        case 'monday': return 'Pazartesi';
+        case 'tuesday': return 'Salı';
+        case 'wednesday': return 'Çarşamba';
+        case 'thursday': return 'Perşembe';
+        case 'friday': return 'Cuma';
+        default: return '';
+      }
+    };
+
+    const getScheduleForDay = (dayKey: string) => {
+      const scheduleForDay = daySchedules?.find(d => d.day === dayKey) || daySchedules?.find(d => d.day === 'all');
+      if (scheduleForDay && scheduleForDay.schedule && scheduleForDay.schedule.length > 0) {
+        return scheduleForDay.schedule;
+      } else if (bellSchedule && bellSchedule.length > 0) {
+        return bellSchedule;
+      }
+      return [];
+    };
+
+    const getLessonsFromSchedule = (scheduleItems: Array<{ type: 'lesson' | 'break'; startTime: string; endTime: string; order: number }>) => {
+      return scheduleItems
+        .filter(s => s.type === 'lesson')
+        .sort((a, b) => a.order - b.order)
+        .map(s => ({ start: toMinutes(s.startTime), end: toMinutes(s.endTime), startTime: s.startTime }));
+    };
+
+    const dayIndex = now.getDay(); // 0: Pazar ... 6: Cumartesi
+    const dayKey = getDayKey(dayIndex);
+    
+    const scheduleItems = getScheduleForDay(dayKey);
+    const lessons = getLessonsFromSchedule(scheduleItems);
 
     if (lessons.length === 0) return null;
 
@@ -89,20 +108,47 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
     for (const l of lessons) {
       if (currentMinutes >= l.start && currentMinutes < l.end) {
         const diff = l.end - currentMinutes;
-        const hours = Math.floor(diff / 60);
-        const mins = diff % 60;
         // Dersteyiz: teneffüs Ziline kalan süre
         return { label: 'Teneffüs Ziline', minutes: diff };
       }
     }
 
-    // Değilsek, sıradaki dersin başlangıcına kadar süre
+    // Değilsek, bugünün sıradaki dersini kontrol et
     const upcoming = lessons.find(l => currentMinutes < l.start);
     if (upcoming) {
       const diff = upcoming.start - currentMinutes;
-      const hours = Math.floor(diff / 60);
-      const mins = diff % 60;
       return { label: 'Ders Ziline', minutes: diff };
+    }
+
+    // Bugünün tüm dersleri bitti, bir sonraki iş gününün ilk dersine bak
+    let nextDayIndex = dayIndex + 1;
+    
+    // Hafta sonunu atla
+    if (nextDayIndex === 6) nextDayIndex = 8; // Cumartesi -> Pazartesi
+    if (nextDayIndex === 0) nextDayIndex = 1; // Pazar -> Pazartesi
+    if (nextDayIndex > 5) nextDayIndex = 1; // Cuma sonrası -> Pazartesi
+
+    // Sonraki 5 güne kadar kontrol et (tüm iş günlerini)
+    for (let i = 0; i < 5; i++) {
+      const checkDayIndex = ((nextDayIndex - 1 + i) % 5) + 1; // 1-5 arası döngü (Pzt-Cuma)
+      const checkDayKey = getDayKey(checkDayIndex);
+      const nextSchedule = getScheduleForDay(checkDayKey);
+      const nextLessons = getLessonsFromSchedule(nextSchedule);
+
+      if (nextLessons.length > 0) {
+        const firstLesson = nextLessons[0];
+        const dayName = getDayName(checkDayKey);
+        
+        // Süreyi hesapla (gün farkı + saat farkı)
+        const daysUntil = checkDayIndex < dayIndex ? (5 - dayIndex + checkDayIndex) : (checkDayIndex - dayIndex);
+        const minutesUntilMidnight = (24 * 60) - currentMinutes;
+        const totalMinutes = minutesUntilMidnight + (daysUntil - 1) * 24 * 60 + firstLesson.start;
+        
+        return { 
+          label: `${dayName} ${firstLesson.startTime}`, 
+          minutes: Math.max(0, totalMinutes) 
+        };
+      }
     }
 
     return { label: 'Ders Ziline', minutes: 0 };
@@ -200,9 +246,22 @@ export const CountdownBarFlip = ({ countdowns }: CountdownBarFlipProps) => {
       <Card className="p-4 border-l-4 border-l-orange-500 shadow-md bg-orange-50">
         <div className="text-center">
           <Bell className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-          <p className="font-bold text-base text-orange-900 mb-1">{bellInfo?.label || 'Zil'}</p>
+          <p className="font-bold text-base text-orange-900 mb-1">
+            {bellInfo?.label?.includes('Pazartesi') || bellInfo?.label?.includes('Salı') || 
+             bellInfo?.label?.includes('Çarşamba') || bellInfo?.label?.includes('Perşembe') || 
+             bellInfo?.label?.includes('Cuma') ? 'Bir Sonraki Ders' : bellInfo?.label || 'Zil'}
+          </p>
           <div className="bg-white/80 rounded-lg p-2.5">
-            <span className="text-xl font-bold text-orange-700">{bellInfo ? `${bellInfo.minutes} dk` : '—'}</span>
+            {bellInfo?.label?.includes('Pazartesi') || bellInfo?.label?.includes('Salı') || 
+             bellInfo?.label?.includes('Çarşamba') || bellInfo?.label?.includes('Perşembe') || 
+             bellInfo?.label?.includes('Cuma') ? (
+              <div className="space-y-1">
+                <div className="text-sm font-semibold text-orange-600">{bellInfo.label}</div>
+                <div className="text-xs text-orange-500">{bellInfo.minutes > 1440 ? `${Math.floor(bellInfo.minutes / 1440)} gün ${Math.floor((bellInfo.minutes % 1440) / 60)} saat ${bellInfo.minutes % 60} dk` : `${Math.floor(bellInfo.minutes / 60)} saat ${bellInfo.minutes % 60} dk`}</div>
+              </div>
+            ) : (
+              <span className="text-xl font-bold text-orange-700">{bellInfo ? `${bellInfo.minutes} dk` : '—'}</span>
+            )}
           </div>
         </div>
       </Card>
