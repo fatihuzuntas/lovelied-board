@@ -112,11 +112,22 @@ export const UpdateManager = () => {
 
       const info = await checkForUpdates();
       if (info) {
-        setUpdateInfo(info);
-        setUpdateStatus('available');
-        toast.success(`Yeni güncelleme mevcut: v${info.version}`, {
-          duration: 4000,
-        });
+        // Mevcut sürümle karşılaştır
+        const currentVersion = await getAppVersion();
+        if (info.version === currentVersion) {
+          // Aynı sürümse güncel göster
+          setUpdateStatus('idle');
+          toast.success('🎉 Uygulama Güncel!', {
+            description: 'En son versiyonu kullanıyorsunuz.',
+            duration: 3000,
+          });
+        } else {
+          setUpdateInfo(info);
+          setUpdateStatus('available');
+          toast.success(`Yeni güncelleme mevcut: v${info.version}`, {
+            duration: 4000,
+          });
+        }
       } else {
         setUpdateStatus('idle');
         toast.success('🎉 Uygulama Güncel!', {
