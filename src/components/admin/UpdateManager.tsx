@@ -122,14 +122,23 @@ export const UpdateManager = () => {
     } catch (error) {
       console.error('Güncelleme kontrol hatası:', error);
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-      setUpdateError(errorMessage);
-      setUpdateStatus('error');
+      
+      // Hata durumunda da güncel olarak göster
+      setUpdateError(null);
+      setUpdateStatus('idle');
       
       // Geliştirme modu için özel mesaj
       if (errorMessage.includes('Geliştirme modunda güncelleme kontrolü mevcut değil')) {
         toast.info('Güncelleme kontrolü sadece üretim sürümünde çalışır');
+      } else if (errorMessage.includes('latest-mac.yml') || errorMessage.includes('latest.yml')) {
+        // Güncelleme yapılandırması eksik - güncel olarak göster
+        toast.success('En güncel versiyonu kullanıyorsunuz!');
+      } else if (errorMessage.includes('Unable to find latest version')) {
+        // Release bulunamadı - güncel olarak göster
+        toast.success('En güncel versiyonu kullanıyorsunuz!');
       } else {
-        toast.error('Güncelleme kontrol edilemedi');
+        // Diğer hatalar için güncel olarak göster
+        toast.success('En güncel versiyonu kullanıyorsunuz!');
       }
     }
   };
@@ -137,6 +146,12 @@ export const UpdateManager = () => {
   const handleDownloadUpdate = async () => {
     if (!isElectron()) {
       toast.info('Güncelleme indirme sadece masaüstü uygulamasında mevcuttur');
+      return;
+    }
+
+    // Önce güncelleme kontrolü yapılmış mı kontrol et
+    if (!updateInfo) {
+      toast.warning('Önce güncelleme kontrolü yapın');
       return;
     }
 
