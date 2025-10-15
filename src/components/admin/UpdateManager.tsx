@@ -57,6 +57,8 @@ export const UpdateManager = () => {
   const cleanMarkdownContent = (content: string): string => {
     if (!content) return '';
     
+    console.log('🔍 Original content:', content.substring(0, 200) + '...');
+    
     // HTML etiketlerini kaldır
     let cleaned = content
       .replace(/<[^>]*>/g, '') // HTML etiketlerini kaldır
@@ -77,9 +79,13 @@ export const UpdateManager = () => {
       .replace(/`(.*?)`/g, '$1') // `Kod` blokları
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [Link](url) -> Link
       .replace(/^- /gm, '• ') // Liste işaretlerini düzenle
-      .replace(/^\d+\. /gm, '• '); // Numaralı listeleri bullet'e çevir
+      .replace(/^\d+\. /gm, '• ') // Numaralı listeleri bullet'e çevir
+      .replace(/\n\s*\n/g, '\n\n') // Fazla boşlukları temizle
+      .trim();
     
-    return cleaned.trim();
+    console.log('✨ Cleaned content:', cleaned.substring(0, 200) + '...');
+    
+    return cleaned;
   };
 
   useEffect(() => {

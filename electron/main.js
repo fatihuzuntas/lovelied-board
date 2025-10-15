@@ -551,10 +551,12 @@ function downloadUpdate() {
 }
 
 function installUpdate() {
-  // macOS'ta kurulumun güvenli tetiklenmesi için parametrelerle çağır
+  // macOS'ta kurulumun güvenli tetiklenmesi
   try {
     // quitAndInstall(isSilent, isForceRunAfter)
-    autoUpdater.quitAndInstall(true, true);
+    // isSilent: false (kullanıcıya bildirim göster)
+    // isForceRunAfter: true (kurulum sonrası otomatik başlat)
+    autoUpdater.quitAndInstall(false, true);
   } catch (e) {
     // Geriye dönük uyumluluk için parametresiz çağrı
     autoUpdater.quitAndInstall();
