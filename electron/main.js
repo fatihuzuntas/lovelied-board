@@ -41,6 +41,13 @@ let migrationManager;
 autoUpdater.checkForUpdatesAndNotify = false; // Otomatik güncelleme kapalı
 autoUpdater.autoDownload = false; // Manuel indirme
 
+// GitHub provider ayarları (package.json'dan otomatik alınır)
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'fatihuzuntas',
+  repo: 'lovelied-board'
+});
+
 function createBoardWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -330,25 +337,7 @@ function setupIpcHandlers() {
         };
       }
       
-      // app-update.yml dosyasının varlığını kontrol et
-      // Windows'ta resources klasöründe, macOS'ta üst dizinde
-      let updateConfigPath;
-      if (process.platform === 'win32') {
-        updateConfigPath = path.join(app.getAppPath(), 'resources', 'app-update.yml');
-      } else {
-        updateConfigPath = path.join(app.getAppPath(), '..', 'app-update.yml');
-      }
-      
-      if (!fs.existsSync(updateConfigPath)) {
-        console.log('app-update.yml bulunamadı, güncelleme kontrolü devre dışı');
-        console.log('Aranan konum:', updateConfigPath);
-        return {
-          success: false,
-          error: 'Güncelleme yapılandırması bulunamadı',
-          updateInfo: null
-        };
-      }
-      
+      // electron-updater otomatik olarak latest.yml/latest-mac.yml kullanır
       const result = await autoUpdater.checkForUpdates();
       return { success: true, updateInfo: result.updateInfo };
     } catch (error) {
@@ -568,26 +557,62 @@ function installUpdate() {
 // Güncelleme event handlers
 autoUpdater.on('checking-for-update', () => {
   console.log('Güncelleme kontrol ediliyor...');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:checking-for-update');
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:checking-for-update');
+  }
 });
 
 autoUpdater.on('update-available', (info) => {
   console.log('Güncelleme mevcut:', info);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:update-available', info);
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:update-available', info);
+  }
 });
 
 autoUpdater.on('update-not-available', (info) => {
   console.log('Güncelleme yok:', info);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:update-not-available', info);
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:update-not-available', info);
+  }
 });
 
 autoUpdater.on('error', (err) => {
   console.error('Güncelleme hatası:', err);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:error', err);
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:error', err);
+  }
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
   console.log('İndirme ilerlemesi:', progressObj);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:download-progress', progressObj);
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:download-progress', progressObj);
+  }
 });
 
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Güncelleme indirildi:', info);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:update-downloaded', info);
+  }
+  if (adminWindow && !adminWindow.isDestroyed()) {
+    adminWindow.webContents.send('updater:update-downloaded', info);
+  }
 });
 
 // Uygulama başlatma

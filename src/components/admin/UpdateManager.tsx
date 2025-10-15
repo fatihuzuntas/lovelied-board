@@ -330,7 +330,7 @@ export const UpdateManager = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold">v{currentVersion}</p>
-              <p className="text-sm text-muted-foreground">Lovelied Board</p>
+              <p className="text-sm text-muted-foreground">Digital Board</p>
             </div>
             {getStatusBadge()}
           </div>
