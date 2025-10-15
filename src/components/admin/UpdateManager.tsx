@@ -121,9 +121,16 @@ export const UpdateManager = () => {
       }
     } catch (error) {
       console.error('Güncelleme kontrol hatası:', error);
-      setUpdateError(error instanceof Error ? error.message : 'Bilinmeyen hata');
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      setUpdateError(errorMessage);
       setUpdateStatus('error');
-      toast.error('Güncelleme kontrol edilemedi');
+      
+      // Geliştirme modu için özel mesaj
+      if (errorMessage.includes('Geliştirme modunda güncelleme kontrolü mevcut değil')) {
+        toast.info('Güncelleme kontrolü sadece üretim sürümünde çalışır');
+      } else {
+        toast.error('Güncelleme kontrol edilemedi');
+      }
     }
   };
 

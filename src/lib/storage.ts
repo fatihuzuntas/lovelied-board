@@ -485,6 +485,12 @@ export const checkForUpdates = async () => {
   
   try {
     const result = await window.electron!.ipcRenderer.invoke('updater:check-for-updates');
+    
+    // Geliştirme modunda güncelleme kontrolü devre dışı
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
+    
     return result.updateInfo;
   } catch (error) {
     console.error('Güncelleme kontrol hatası:', error);

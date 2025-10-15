@@ -61,7 +61,21 @@ function createBoardWindow() {
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173/');
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Üretim modunda HTML dosyasının doğru yolunu bul
+    try {
+      // app.asar içindeki dist klasörüne erişim
+      const indexPath = path.join(app.getAppPath(), 'dist', 'index.html');
+      console.log('HTML dosya yolu:', indexPath);
+      console.log('App path:', app.getAppPath());
+      
+      // file:// protokolü ile yükle (HashRouter için gerekli)
+      const fileUrl = `file://${indexPath}`;
+      console.log('File URL:', fileUrl);
+      mainWindow.loadURL(fileUrl);
+    } catch (error) {
+      console.error('HTML yükleme hatası:', error);
+      mainWindow.loadURL('data:text/html,<h1>Hata:</h1><p>' + error.message + '</p>');
+    }
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -94,7 +108,20 @@ function createAdminWindow() {
     adminWindow.loadURL('http://localhost:5173/admin');
     // Geliştirmede devtools'u artık otomatik açmıyoruz
   } else {
-    adminWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'admin' });
+    // Üretim modunda HTML dosyasının doğru yolunu bul
+    try {
+      // app.asar içindeki dist klasörüne erişim
+      const indexPath = path.join(app.getAppPath(), 'dist', 'index.html');
+      console.log('Admin HTML dosya yolu:', indexPath);
+      
+      // file:// protokolü ile yükle (HashRouter için gerekli)
+      const fileUrl = `file://${indexPath}#/admin`;
+      console.log('Admin File URL:', fileUrl);
+      adminWindow.loadURL(fileUrl);
+    } catch (error) {
+      console.error('Admin HTML yükleme hatası:', error);
+      adminWindow.loadURL('data:text/html,<h1>Admin Hata:</h1><p>' + error.message + '</p>');
+    }
   }
 
   adminWindow.once('ready-to-show', () => {
@@ -293,11 +320,36 @@ function setupIpcHandlers() {
   // Güncelleme işlemleri
   ipcMain.handle('updater:check-for-updates', async () => {
     try {
+      // Geliştirme modunda güncelleme kontrolünü devre dışı bırak
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Geliştirme modunda güncelleme kontrolü devre dışı');
+        return { 
+          success: false, 
+          error: 'Geliştirme modunda güncelleme kontrolü mevcut değil',
+          updateInfo: null 
+        };
+      }
+      
+      // app-update.yml dosyasının varlığını kontrol et
+      const updateConfigPath = path.join(app.getAppPath(), '..', 'app-update.yml');
+      if (!fs.existsSync(updateConfigPath)) {
+        console.log('app-update.yml bulunamadı, güncelleme kontrolü devre dışı');
+        return {
+          success: false,
+          error: 'Güncelleme yapılandırması bulunamadı',
+          updateInfo: null
+        };
+      }
+      
       const result = await autoUpdater.checkForUpdates();
       return { success: true, updateInfo: result.updateInfo };
     } catch (error) {
       console.error('Güncelleme kontrol hatası:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message || 'Güncelleme kontrolü başarısız',
+        updateInfo: null
+      };
     }
   });
 
