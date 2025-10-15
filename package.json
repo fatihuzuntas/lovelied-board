@@ -55,7 +55,18 @@
     },
     "win": {
       "target": [
-        "portable"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "icon-512.png",
       "requestedExecutionLevel": "asInvoker",
@@ -70,15 +81,20 @@
     },
     "nsis": {
       "oneClick": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "installerLanguages": ["tr_TR", "en_US"],
+      "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "installerIcon": "icon-512.png",
-      "uninstallerIcon": "icon-512.png",
-      "installerHeaderIcon": "icon-512.png",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "shortcutName": "Lovelied Board"
+      "shortcutName": "Lovelied Board",
+      "menuCategory": true,
+      "artifactName": "${productName} Setup ${version}.${ext}",
+      "uninstallDisplayName": "${productName}",
+      "include": "installer.nsh",
+      "perMachine": true,
+      "displayLanguageSelector": false
     }
   },
   "dependencies": {
