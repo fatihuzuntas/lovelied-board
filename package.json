@@ -51,7 +51,8 @@
         "zip"
       ],
       "category": "public.app-category.education",
-      "icon": "icon-512.png"
+      "icon": "icon-512.png",
+      "artifactName": "Digital-Board-${version}-${arch}.${ext}"
     },
     "win": {
       "target": [
@@ -70,14 +71,15 @@
       ],
       "icon": "icon-512.png",
       "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName} ${version}.${ext}"
+      "artifactName": "Digital-Board-${version}.${ext}"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "icon": "icon-512.png"
+      "icon": "icon-512.png",
+      "artifactName": "Digital-Board-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -93,7 +95,7 @@
       "runAfterFinish": true,
       "shortcutName": "Digital Board",
       "menuCategory": true,
-      "artifactName": "${productName} Setup ${version}.${ext}",
+      "artifactName": "Digital-Board-Setup-${version}.${ext}",
       "uninstallDisplayName": "${productName}",
       "include": "installer.nsh",
       "perMachine": true,

@@ -29,6 +29,15 @@ import {
   isElectron
 } from '@/lib/storage';
 
+// Electron window type
+type ElectronWindow = Window & { 
+  electron?: {
+    ipcRenderer: {
+      invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+    };
+  };
+};
+
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
 
 interface UpdateInfo {
@@ -57,7 +66,6 @@ export const UpdateManager = () => {
   const cleanMarkdownContent = (content: string): string => {
     if (!content) return '';
     
-    console.log('🔍 Original content:', content.substring(0, 200) + '...');
     
     // HTML etiketlerini kaldır
     let cleaned = content
@@ -83,7 +91,6 @@ export const UpdateManager = () => {
       .replace(/\n\s*\n/g, '\n\n') // Fazla boşlukları temizle
       .trim();
     
-    console.log('✨ Cleaned content:', cleaned.substring(0, 200) + '...');
     
     return cleaned;
   };
@@ -102,7 +109,7 @@ export const UpdateManager = () => {
       const version = await getAppVersion();
       setCurrentVersion(version);
     } catch (error) {
-      console.error('Versiyon bilgisi yüklenemedi:', error);
+      // Hata durumunda sessizce devam et
     }
   };
 
@@ -128,9 +135,6 @@ export const UpdateManager = () => {
   const handleCheckForUpdates = async () => {
     // Electron tespiti için debug (sadece development'ta)
     const electronCheck = isElectron();
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 UpdateManager - Electron Check:', electronCheck);
-    }
     
     // Web ortamında güncelleme kontrolü yapma
     if (!electronCheck) {
@@ -169,7 +173,6 @@ export const UpdateManager = () => {
         });
       }
     } catch (error) {
-      console.error('Güncelleme kontrol hatası:', error);
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
       
       // Hata durumunda da güncel olarak göster
@@ -207,7 +210,6 @@ export const UpdateManager = () => {
       
       await downloadUpdate();
     } catch (error) {
-      console.error('Güncelleme indirme hatası:', error);
       setUpdateError(error instanceof Error ? error.message : 'İndirme hatası');
       setUpdateStatus('error');
       toast.error('Güncelleme indirilemedi');
@@ -223,7 +225,6 @@ export const UpdateManager = () => {
     try {
       await installUpdate();
     } catch (error) {
-      console.error('Güncelleme kurulum hatası:', error);
       setUpdateError(error instanceof Error ? error.message : 'Kurulum hatası');
       toast.error('Güncelleme kurulamadı');
     }
@@ -239,7 +240,7 @@ export const UpdateManager = () => {
       setIsBackingUp(true);
       
       // Klasör seçimi için Electron API'sini kullan
-      const result = await window.electron.ipcRenderer.invoke('dialog:show-save-dialog', {
+      const result = await (window as ElectronWindow).electron?.ipcRenderer.invoke('dialog:show-save-dialog', {
         title: 'Yedekleme Konumu Seçin',
         defaultPath: 'lovelied-board-backup',
         properties: ['createDirectory'],
@@ -248,19 +249,18 @@ export const UpdateManager = () => {
         ]
       });
       
-      if (!result.canceled && result.filePath) {
+      if (!(result as { canceled: boolean; filePath?: string }).canceled && (result as { canceled: boolean; filePath?: string }).filePath) {
         // Seçilen klasöre yedekle (veriler + resimler)
         try {
-          await window.electron.ipcRenderer.invoke('db:backup-to-folder', result.filePath);
-          toast.success(`Yedekleme tamamlandı: ${result.filePath}`);
+          await (window as ElectronWindow).electron?.ipcRenderer.invoke('db:backup-to-folder', (result as { canceled: boolean; filePath?: string }).filePath);
+          toast.success(`Yedekleme tamamlandı: ${(result as { canceled: boolean; filePath?: string }).filePath}`);
         } catch (error) {
           // Fallback: Mevcut backup handler'ını kullan
-          const backupPath = await window.electron.ipcRenderer.invoke('db:backup');
+          const backupPath = await (window as ElectronWindow).electron?.ipcRenderer.invoke('db:backup');
           toast.success(`Yedek alındı: ${backupPath}`);
         }
       }
     } catch (error) {
-      console.error('Backup hatası:', error);
       toast.error('Yedek alınamadı');
     } finally {
       setIsBackingUp(false);
@@ -277,22 +277,21 @@ export const UpdateManager = () => {
       setIsRestoring(true);
       
       // Klasör seçimi için Electron API'sini kullan
-      const result = await window.electron.ipcRenderer.invoke('dialog:show-open-dialog', {
+      const result = await (window as ElectronWindow).electron?.ipcRenderer.invoke('dialog:show-open-dialog', {
         title: 'Yedekleme Klasörü Seçin',
         properties: ['openDirectory'],
         buttonLabel: 'Klasör Seç'
       });
       
-      if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
-        const backupFolder = result.filePaths[0];
+      if (!(result as { canceled: boolean; filePaths?: string[] }).canceled && (result as { canceled: boolean; filePaths?: string[] }).filePaths && (result as { canceled: boolean; filePaths?: string[] }).filePaths!.length > 0) {
+        const backupFolder = (result as { canceled: boolean; filePaths?: string[] }).filePaths![0];
         // Yedekten geri yükle (geçerlilik kontrolü main process tarafında yapılır)
-        await window.electron.ipcRenderer.invoke('db:restore-from-folder', backupFolder);
+        await (window as ElectronWindow).electron?.ipcRenderer.invoke('db:restore-from-folder', backupFolder);
         toast.success('Yedek başarıyla geri yüklendi');
         // Sayfayı yenile
         window.location.reload();
       }
     } catch (error) {
-      console.error('Restore hatası:', error);
       toast.error('Yedek geri yüklenemedi');
     } finally {
       setIsRestoring(false);

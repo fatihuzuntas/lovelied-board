@@ -40,5 +40,3 @@ contextBridge.exposeInMainWorld('process', {
   }
 });
 
-// Console'da debug bilgisi
-console.log('🔌 Preload script yüklendi');

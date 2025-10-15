@@ -46,12 +46,24 @@ declare namespace ElectronIPC {
     | 'app:get-metadata'
     | 'app:set-metadata';
 
+  // Dialog channels
+  type DialogChannels = 
+    | 'dialog:show-save-dialog'
+    | 'dialog:show-open-dialog';
+
+  // Database backup/restore channels
+  type DatabaseBackupChannels = 
+    | 'db:backup-to-folder'
+    | 'db:restore-from-folder';
+
   // All valid channels
   type AllChannels = 
     | DatabaseChannels 
     | UploadChannels 
     | UpdaterChannels 
-    | AppChannels;
+    | AppChannels
+    | DialogChannels
+    | DatabaseBackupChannels;
 
   // Event channels
   type EventChannels = 
@@ -99,6 +111,13 @@ interface DownloadProgress {
   percent: number;
   transferred: number;
   total: number;
+}
+
+// Dialog response types
+interface DialogResponse {
+  canceled: boolean;
+  filePath?: string;
+  filePaths?: string[];
 }
 
 export {};

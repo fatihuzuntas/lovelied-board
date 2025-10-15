@@ -72,15 +72,10 @@ function createBoardWindow() {
     try {
       // app.asar içindeki dist klasörüne erişim
       const indexPath = path.join(app.getAppPath(), 'dist', 'index.html');
-      console.log('HTML dosya yolu:', indexPath);
-      console.log('App path:', app.getAppPath());
-      
       // file:// protokolü ile yükle (HashRouter için gerekli)
       const fileUrl = `file://${indexPath}`;
-      console.log('File URL:', fileUrl);
       mainWindow.loadURL(fileUrl);
     } catch (error) {
-      console.error('HTML yükleme hatası:', error);
       mainWindow.loadURL('data:text/html,<h1>Hata:</h1><p>' + error.message + '</p>');
     }
   }
@@ -119,14 +114,11 @@ function createAdminWindow() {
     try {
       // app.asar içindeki dist klasörüne erişim
       const indexPath = path.join(app.getAppPath(), 'dist', 'index.html');
-      console.log('Admin HTML dosya yolu:', indexPath);
       
       // file:// protokolü ile yükle (HashRouter için gerekli)
       const fileUrl = `file://${indexPath}#/admin`;
-      console.log('Admin File URL:', fileUrl);
       adminWindow.loadURL(fileUrl);
     } catch (error) {
-      console.error('Admin HTML yükleme hatası:', error);
       adminWindow.loadURL('data:text/html,<h1>Admin Hata:</h1><p>' + error.message + '</p>');
     }
   }
@@ -246,7 +238,6 @@ function setupIpcHandlers() {
     try {
       return await dbManager.getBoardData();
     } catch (error) {
-      console.error('Board data okuma hatası:', error);
       throw error;
     }
   });
@@ -256,7 +247,6 @@ function setupIpcHandlers() {
       await dbManager.saveBoardData(data);
       return { success: true };
     } catch (error) {
-      console.error('Board data kaydetme hatası:', error);
       throw error;
     }
   });
@@ -267,7 +257,6 @@ function setupIpcHandlers() {
       const backupPath = await dbManager.backup();
       return { success: true, path: backupPath };
     } catch (error) {
-      console.error('Backup hatası:', error);
       throw error;
     }
   });
@@ -277,7 +266,6 @@ function setupIpcHandlers() {
       const oldBackupPath = await dbManager.restore(backupPath);
       return { success: true, oldBackupPath };
     } catch (error) {
-      console.error('Restore hatası:', error);
       throw error;
     }
   });
@@ -288,7 +276,6 @@ function setupIpcHandlers() {
       const url = await migrationManager.uploadMedia(dataUrl, suggestedName);
       return { success: true, url };
     } catch (error) {
-      console.error('Medya yükleme hatası:', error);
       throw error;
     }
   });
@@ -319,7 +306,6 @@ function setupIpcHandlers() {
       const base64 = buffer.toString('base64');
       return { success: true, dataUrl: `data:${mime};base64,${base64}` };
     } catch (error) {
-      console.error('Medya data URL oluşturma hatası:', error);
       throw error;
     }
   });
@@ -329,7 +315,6 @@ function setupIpcHandlers() {
     try {
       // Geliştirme modunda güncelleme kontrolünü devre dışı bırak
       if (process.env.NODE_ENV === 'development') {
-        console.log('Geliştirme modunda güncelleme kontrolü devre dışı');
         return { 
           success: false, 
           error: 'Geliştirme modunda güncelleme kontrolü mevcut değil',
@@ -341,7 +326,6 @@ function setupIpcHandlers() {
       const result = await autoUpdater.checkForUpdates();
       return { success: true, updateInfo: result.updateInfo };
     } catch (error) {
-      console.error('Güncelleme kontrol hatası:', error);
       return {
         success: false,
         error: error.message || 'Güncelleme kontrolü başarısız',
@@ -355,7 +339,6 @@ function setupIpcHandlers() {
       await autoUpdater.downloadUpdate();
       return { success: true };
     } catch (error) {
-      console.error('Güncelleme indirme hatası:', error);
       throw error;
     }
   });
@@ -365,7 +348,6 @@ function setupIpcHandlers() {
       autoUpdater.quitAndInstall();
       return { success: true };
     } catch (error) {
-      console.error('Güncelleme kurulum hatası:', error);
       throw error;
     }
   });
@@ -380,7 +362,6 @@ function setupIpcHandlers() {
       const value = await dbManager.getAppMetadata(key);
       return { success: true, value };
     } catch (error) {
-      console.error('Metadata okuma hatası:', error);
       throw error;
     }
   });
@@ -390,7 +371,6 @@ function setupIpcHandlers() {
       await dbManager.setAppMetadata(key, value);
       return { success: true };
     } catch (error) {
-      console.error('Metadata kaydetme hatası:', error);
       throw error;
     }
   });
@@ -401,7 +381,6 @@ function setupIpcHandlers() {
       const result = await dialog.showSaveDialog(mainWindow, options);
       return result;
     } catch (error) {
-      console.error('Dialog hatası:', error);
       return { canceled: true };
     }
   });
@@ -411,7 +390,6 @@ function setupIpcHandlers() {
       const result = await dialog.showOpenDialog(mainWindow, options);
       return result;
     } catch (error) {
-      console.error('Dialog hatası:', error);
       return { canceled: true };
     }
   });
@@ -429,7 +407,6 @@ function setupIpcHandlers() {
       fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
       return { success: true, path: filePath };
     } catch (error) {
-      console.error('Yedekleme hatası:', error);
       throw error;
     }
   });
@@ -458,22 +435,14 @@ function setupIpcHandlers() {
       const mediaPath = path.join(dataRoot, 'user-data', 'media');
       const backupMediaPath = path.join(folderPath, 'media');
 
-      console.log('Data root:', dataRoot);
-      console.log('Media path:', mediaPath);
-      console.log('Media exists:', fs.existsSync(mediaPath));
-      console.log('Backup media path:', backupMediaPath);
 
       if (fs.existsSync(mediaPath)) {
         // Media klasörünü recursive olarak kopyala
         copyFolderRecursive(mediaPath, backupMediaPath);
-        console.log('Media folder copied successfully');
-      } else {
-        console.log('Media folder not found, skipping copy');
       }
 
       return { success: true, path: folderPath };
     } catch (error) {
-      console.error('Klasör yedekleme hatası:', error);
       throw error;
     }
   });
@@ -505,12 +474,10 @@ function setupIpcHandlers() {
         }
         
         copyFolderRecursive(mediaPath, targetMediaPath);
-        console.log('Media klasörü geri yüklendi:', targetMediaPath);
       }
       
       return { success: true, path: folderPath };
     } catch (error) {
-      console.error('Klasör geri yükleme hatası:', error);
       throw error;
     }
   });
@@ -565,7 +532,6 @@ function installUpdate() {
 
 // Güncelleme event handlers
 autoUpdater.on('checking-for-update', () => {
-  console.log('Güncelleme kontrol ediliyor...');
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:checking-for-update');
   }
@@ -575,7 +541,6 @@ autoUpdater.on('checking-for-update', () => {
 });
 
 autoUpdater.on('update-available', (info) => {
-  console.log('Güncelleme mevcut:', info);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:update-available', info);
   }
@@ -585,7 +550,6 @@ autoUpdater.on('update-available', (info) => {
 });
 
 autoUpdater.on('update-not-available', (info) => {
-  console.log('Güncelleme yok:', info);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:update-not-available', info);
   }
@@ -595,7 +559,6 @@ autoUpdater.on('update-not-available', (info) => {
 });
 
 autoUpdater.on('error', (err) => {
-  console.error('Güncelleme hatası:', err);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:error', err);
   }
@@ -604,8 +567,7 @@ autoUpdater.on('error', (err) => {
   }
 });
 
-autoUpdater.on('download-progress', (progressObj) => {
-  console.log('İndirme ilerlemesi:', progressObj);
+autoUpdater.on('download-progress', (progressObj) => {('İndirme ilerlemesi:', progressObj);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:download-progress', progressObj);
   }
@@ -615,7 +577,6 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-  console.log('Güncelleme indirildi:', info);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:update-downloaded', info);
   }
@@ -627,7 +588,6 @@ autoUpdater.on('update-downloaded', (info) => {
 // Uygulama başlatma
 app.whenReady().then(async () => {
   try {
-    console.log('🚀 Lovelied Board başlatılıyor...');
     
     // Veritabanını başlat
     dbManager = new DatabaseManager();
@@ -646,7 +606,6 @@ app.whenReady().then(async () => {
     // Menüyü oluştur
     createMenu();
     
-    console.log('✅ Lovelied Board başlatıldı');
     
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -655,7 +614,6 @@ app.whenReady().then(async () => {
       }
     });
   } catch (error) {
-    console.error('❌ Uygulama başlatma hatası:', error);
     dialog.showErrorBox('Başlatma Hatası', 'Uygulama başlatılamadı: ' + error.message);
     app.quit();
   }
