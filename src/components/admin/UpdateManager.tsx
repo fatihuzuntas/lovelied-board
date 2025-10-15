@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import * as path from 'path';
-import * as fs from 'fs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -252,15 +250,7 @@ export const UpdateManager = () => {
       
       if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
         const backupFolder = result.filePaths[0];
-        const dataFile = path.join(backupFolder, 'board-data.json');
-        
-        // JSON dosyasının varlığını kontrol et
-        if (!fs.existsSync(dataFile)) {
-          toast.error('Seçilen klasörde board-data.json dosyası bulunamadı');
-          return;
-        }
-        
-        // Yedekten geri yükle
+        // Yedekten geri yükle (geçerlilik kontrolü main process tarafında yapılır)
         await window.electron.ipcRenderer.invoke('db:restore-from-folder', backupFolder);
         toast.success('Yedek başarıyla geri yüklendi');
         // Sayfayı yenile

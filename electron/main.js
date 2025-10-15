@@ -551,7 +551,14 @@ function downloadUpdate() {
 }
 
 function installUpdate() {
-  autoUpdater.quitAndInstall();
+  // macOS'ta kurulumun güvenli tetiklenmesi için parametrelerle çağır
+  try {
+    // quitAndInstall(isSilent, isForceRunAfter)
+    autoUpdater.quitAndInstall(true, true);
+  } catch (e) {
+    // Geriye dönük uyumluluk için parametresiz çağrı
+    autoUpdater.quitAndInstall();
+  }
 }
 
 // Güncelleme event handlers

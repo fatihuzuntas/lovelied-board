@@ -19,6 +19,7 @@ const Admin = () => {
   const [schoolName, setSchoolName] = useState('Okul Adı');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   useEffect(() => {
     const loadData = async () => {
@@ -32,6 +33,17 @@ const Admin = () => {
       }
     };
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const menuItems = [
@@ -193,8 +205,8 @@ const Admin = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-muted-foreground">Çevrimiçi</span>
+              <div className={`${isOnline ? 'bg-green-500' : 'bg-red-500'} w-2 h-2 rounded-full`}></div>
+              <span className="text-sm text-muted-foreground">{isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}</span>
             </div>
           </div>
         </header>
