@@ -57,7 +57,7 @@ export const Header = ({ config }: HeaderProps) => {
       <div />
       <div className="text-right">
         <div className="text-3xl font-bold tabular-nums">{formatTime(currentTime)}</div>
-        <p className="text-[10px] text-primary-foreground/80">Anlık Saat</p>
+        <p className="text-[10px] text-primary-foreground/80">Anlık Saatt</p>
       </div>
     </header>
   );
