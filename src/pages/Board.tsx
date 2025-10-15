@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Header } from '@/components/board/Header';
 import { NewsSlider } from '@/components/board/NewsSlider';
 import { DutySectionFlip } from '@/components/board/DutySectionFlip';
@@ -36,6 +36,9 @@ const Board = () => {
     };
   }, []);
 
+  // Chrome benzeri zoom seviyeleri
+  const zoomLevels = useMemo(() => [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3], []);
+
   // Zoom kontrolü için klavye kısayolları
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -47,13 +50,21 @@ const Board = () => {
       // Zoom In: Ctrl/Cmd + ö
       if (e.key === 'ö' || e.key === 'Ö') {
         e.preventDefault();
-        setZoom(prev => Math.min(prev + 0.1, 3)); // Max 3x zoom
+        setZoom(prev => {
+          const currentIndex = zoomLevels.indexOf(prev);
+          if (currentIndex === -1) return 1; // Eğer mevcut zoom seviyesi listede yoksa 1'e dön
+          return zoomLevels[Math.min(currentIndex + 1, zoomLevels.length - 1)];
+        });
       }
       
       // Zoom Out: Ctrl/Cmd + ç
       if (e.key === 'ç' || e.key === 'Ç') {
         e.preventDefault();
-        setZoom(prev => Math.max(prev - 0.1, 0.5)); // Min 0.5x zoom
+        setZoom(prev => {
+          const currentIndex = zoomLevels.indexOf(prev);
+          if (currentIndex === -1) return 1; // Eğer mevcut zoom seviyesi listede yoksa 1'e dön
+          return zoomLevels[Math.max(currentIndex - 1, 0)];
+        });
       }
       
       // Reset: Ctrl/Cmd + 0
@@ -68,7 +79,7 @@ const Board = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [zoomLevels]);
 
   if (loading || !boardData) {
     return (
@@ -84,10 +95,9 @@ const Board = () => {
   return (
     <div className="h-screen bg-background flex items-center justify-center overflow-hidden p-4">
       <div 
-        className="h-full w-full flex flex-col transition-transform duration-300 ease-in-out"
+        className="h-full w-full flex flex-col transition-all duration-300 ease-in-out"
         style={{ 
-          transform: `scale(${zoom})`,
-          transformOrigin: 'center center'
+          zoom: zoom
         }}
       >
         <div className="h-full flex flex-col overflow-hidden bg-background rounded-lg shadow-xl">
