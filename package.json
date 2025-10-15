@@ -1,7 +1,7 @@
 {
   "name": "digital-board",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Modern, offline çalışan dijital okul panosu sistemi",
   "author": {
     "name": "Fatih Uzuntaş",

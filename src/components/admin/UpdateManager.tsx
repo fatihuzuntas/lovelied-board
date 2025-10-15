@@ -53,6 +53,35 @@ export const UpdateManager = () => {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  // Markdown içeriğini temizleme fonksiyonu
+  const cleanMarkdownContent = (content: string): string => {
+    if (!content) return '';
+    
+    // HTML etiketlerini kaldır
+    let cleaned = content
+      .replace(/<[^>]*>/g, '') // HTML etiketlerini kaldır
+      .replace(/&lt;/g, '<')   // HTML entities'i decode et
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&#x60;/g, '`')
+      .replace(/&#x3D;/g, '=');
+    
+    // Markdown başlıklarını temizle
+    cleaned = cleaned
+      .replace(/^#{1,6}\s*/gm, '') // # Başlıklar
+      .replace(/\*\*(.*?)\*\*/g, '$1') // **Kalın** metin
+      .replace(/\*(.*?)\*/g, '$1') // *İtalik* metin
+      .replace(/`(.*?)`/g, '$1') // `Kod` blokları
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [Link](url) -> Link
+      .replace(/^- /gm, '• ') // Liste işaretlerini düzenle
+      .replace(/^\d+\. /gm, '• '); // Numaralı listeleri bullet'e çevir
+    
+    return cleaned.trim();
+  };
+
   useEffect(() => {
     loadCurrentVersion();
     setupUpdateListeners();
@@ -352,7 +381,7 @@ export const UpdateManager = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-2">Güncelleme Notları</p>
                 <div className="bg-muted p-3 rounded-md">
-                  <pre className="text-sm whitespace-pre-wrap">{updateInfo.releaseNotes}</pre>
+                  <pre className="text-sm whitespace-pre-wrap">{cleanMarkdownContent(updateInfo.releaseNotes)}</pre>
                 </div>
               </div>
             )}
