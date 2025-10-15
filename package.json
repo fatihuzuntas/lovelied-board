@@ -1,7 +1,7 @@
 {
   "name": "digital-board",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Modern, offline çalışan dijital okul panosu sistemi",
   "author": {
     "name": "Fatih Uzuntaş",
@@ -83,7 +83,10 @@
       "oneClick": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "installerLanguages": ["tr_TR", "en_US"],
+      "installerLanguages": [
+        "tr_TR",
+        "en_US"
+      ],
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
